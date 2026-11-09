@@ -19,13 +19,15 @@ import com.whstudio.saferlockscreen.admin.LockDeviceAdminReceiver
 import com.whstudio.saferlockscreen.guard.DeviceSignals
 import com.whstudio.saferlockscreen.guard.GuardPolicy
 import com.whstudio.saferlockscreen.guard.GuardPreferences
+import com.whstudio.saferlockscreen.guard.LockObservation
 import com.whstudio.saferlockscreen.guard.PlannedAction
 import com.whstudio.saferlockscreen.guard.SurfaceClassifier
 
 /**
  * Lock-screen guard. While [KeyguardManager.isDeviceLocked] is true, expanded shade / Quick
  * Settings and the power menu are dismissed. Auto also covers the top edge and can force-lock.
- * Unlocked devices, including Smart Lock, are ignored.
+ * Unlocked devices, including Smart Lock, are ignored. Lock changes are read from the public
+ * [KeyguardManager.isDeviceLocked] query. The keyguard listener APIs are privileged and are not used.
  */
 class ShadeGuardService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
@@ -41,6 +43,7 @@ class ShadeGuardService : AccessibilityService() {
     private var watchdogPosted = false
     private var escalationPosted = false
     private var contentScanPosted = false
+    private var interactivePollPosted = false
 
     private val preferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
         handler.post { evaluate(null) }
@@ -51,8 +54,6 @@ class ShadeGuardService : AccessibilityService() {
             handler.post { evaluate(null) }
         }
     }
-
-    private var keyguardWatch: KeyguardWatch? = null
 
     private val watchdog = Runnable {
         watchdogPosted = false
@@ -73,6 +74,11 @@ class ShadeGuardService : AccessibilityService() {
         evaluate(null)
     }
 
+    private val interactivePoll = Runnable {
+        interactivePollPosted = false
+        evaluate(null)
+    }
+
     override fun onCreate() {
         super.onCreate()
         instance = this
@@ -82,11 +88,6 @@ class ShadeGuardService : AccessibilityService() {
         super.onServiceConnected()
         preferences.register(preferenceListener)
         registerScreenReceiver()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            keyguardWatch = KeyguardWatch(keyguard) { handler.post { evaluate(null) } }.also {
-                it.register(mainExecutor)
-            }
-        }
         evaluate(null)
     }
 
@@ -119,24 +120,17 @@ class ShadeGuardService : AccessibilityService() {
         watchdogPosted = false
         escalationPosted = false
         contentScanPosted = false
+        interactivePollPosted = false
         overlay.hide()
         preferences.unregister(preferenceListener)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            keyguardWatch?.unregister()
-            keyguardWatch = null
-        }
         runCatching { unregisterReceiver(screenReceiver) }
         if (instance === this) instance = null
         super.onDestroy()
     }
 
     private fun registerScreenReceiver() {
-        val filter = IntentFilter().apply {
-            addAction(Intent.ACTION_SCREEN_ON)
-            addAction(Intent.ACTION_SCREEN_OFF)
-            addAction(Intent.ACTION_USER_PRESENT)
-            addAction(Intent.ACTION_USER_UNLOCKED)
-        }
+        val filter = IntentFilter()
+        LockObservation.BROADCASTS.forEach(filter::addAction)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(screenReceiver, filter, RECEIVER_NOT_EXPORTED)
         } else {
@@ -149,7 +143,8 @@ class ShadeGuardService : AccessibilityService() {
             val settings = preferences.read()
             val locked = keyguard.isDeviceLocked
             val interactive = power.isInteractive
-            if (!settings.protectionEnabled || !locked || !interactive) {
+            refreshInteractivePoll(settings.protectionEnabled && interactive)
+            if (!LockObservation.shouldGuard(settings.protectionEnabled, locked, interactive)) {
                 overlay.hide()
                 stopWatchdog()
                 cancelEscalation()
@@ -255,6 +250,17 @@ class ShadeGuardService : AccessibilityService() {
     private fun stopWatchdog() {
         watchdogPosted = false
         handler.removeCallbacks(watchdog)
+    }
+
+    private fun refreshInteractivePoll(active: Boolean) {
+        if (!active) {
+            interactivePollPosted = false
+            handler.removeCallbacks(interactivePoll)
+            return
+        }
+        if (interactivePollPosted) return
+        interactivePollPosted = true
+        handler.postDelayed(interactivePoll, LockObservation.INTERACTIVE_POLL_MS)
     }
 
     private fun cancelEscalation() {
