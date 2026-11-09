@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val releaseKeystorePath = System.getenv("RELEASE_KEYSTORE_FILE")
+
 android {
     namespace = "com.whstudio.saferlockscreen"
     compileSdk = 37
@@ -15,6 +17,17 @@ android {
         versionName = "1.0.0"
     }
 
+    signingConfigs {
+        if (!releaseKeystorePath.isNullOrBlank()) {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -22,6 +35,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            if (!releaseKeystorePath.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
