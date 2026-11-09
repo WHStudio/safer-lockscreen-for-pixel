@@ -1,3 +1,5 @@
+[简体中文](README.zh-CN.md) / [English](README.md)
+
 # Safer Lockscreen
 
 Safer Lockscreen is a small, privacy-first Android app for Google Pixel phones. While the device is locked, it blocks the Quick Settings / notification-shade pull-down, and it can also close the power menu.
@@ -18,7 +20,7 @@ While the phone is locked:
 - **Block power menu on the lock screen** (on by default) closes the power-off / restart menu.
 - The lock-screen **Emergency** button is not blocked. Back is not pressed while the emergency dialer or Personal Safety SOS screen is open, so a call is not torn down. That also means the emergency path can sometimes still reach Quick Settings.
 - The clock, PIN pad, pattern, fingerprint target, and the rest of the lock screen stay uncovered.
-- The app does not turn the screen off. There is no force-lock mode.
+- The app does not turn the screen off.
 
 Protection has one behavior. A transparent accessibility overlay covers the top edge so the shade swipe does not start. If a Quick Settings or notification panel is actually expanded across most of the screen, the app dismisses it. A separate switch closes the power menu the same way, without blanking the display.
 
@@ -138,70 +140,6 @@ This app has not been fully tested on every Pixel build. There is a small chance
 ## Privacy
 
 The app has no network permission and no code that opens a socket. Preferences never leave the phone. Logs record only the action that ran (`dismissShade`, `dismissPowerMenu`) and exception class names. They do not record window titles or notification text.
-
-## 中文说明
-
-**Safer Lockscreen** 是一个面向 Google Pixel 的小型、隐私优先的 Android 应用。手机锁定时，它阻止下拉快捷设置和通知栏，也可以关闭电源菜单。
-
-Pixel 原版系统不能关闭锁屏上的通知栏下拉。Android 17 的“锁定快捷设置连接”只会冻住 WLAN、蓝牙、移动数据和飞行模式等少数开关，通知栏本身仍能拉开。本应用拦截的是通知栏下拉。
-
-包名：`com.whstudio.saferlockscreen`。本项目与 LSDroid / Cerberus 无关，也不包含其代码。
-
-### 行为
-
-只在 `KeyguardManager.isDeviceLocked()` 为真时工作，也就是系统仍要求 PIN、图案或密码。解锁之后，快捷设置和电源菜单恢复正常。智能解锁和延长解锁视为已解锁，应用不会干预。
-
-- **在锁屏上阻止快捷设置**：关闭通知栏和快捷设置。
-- **在锁屏上阻止电源菜单**：关闭关机 / 重新启动菜单。
-- 锁屏上的**紧急呼叫**按钮不会被挡住。紧急拨号或个人安全 SOS 界面打开时，不会按返回键，避免掐断通话。因此这条路径有时仍可能碰到快捷设置。
-- 应用不会关闭屏幕。没有强制锁屏。
-
-防护只有一种行为：用无障碍悬浮层盖住顶部下拉区域；只有快捷设置或通知栏真正盖住屏幕大部分时才收起它。电源菜单用另一个开关以同样的方式关闭，不会熄屏。
-
-无障碍服务、开机广播和应用本身都标记了 `directBootAware`，设置放在设备受保护存储中，因此重启后、首次解锁前也能防护。没有常驻通知。防护不使用设备管理器，也不调用 `lockNow()`。如果设备管理器仍在启用，Android 不允许卸载，需要先停用。不能清除数据，也不能重置密码。
-
-无障碍服务只根据窗口标题、窗格标题、类名和视图 id 识别系统面板。不读取通知正文、短信或密码，也不截屏。
-
-### 权限与关闭方式
-
-- **无障碍服务**：识别并关闭真正打开的锁屏通知栏、快捷设置和电源菜单，并挡住顶部下拉。关闭：设置 → 无障碍 → Safer Lockscreen → 关闭。
-- **设备管理器**：防护不使用它。如果它仍在启用，卸载前必须停用。关闭：应用内“停用设备管理器”，或设置 → 安全 → 设备管理应用。
-- **开机完成广播**：重启和首次解锁时复查防护。安装时授予，没有弹窗。
-- **没有网络权限。** 没有广告、统计或崩溃上报。数据不离开手机，也不提供给其他应用。已关闭备份。
-
-卸载前必须先停用设备管理器，否则系统会拒绝卸载。
-
-侧载应用在 Android 13 及更新版本上，常常要先允许受限制的设置，无障碍开关才可点：
-
-1. 设置 → 应用 → Safer Lockscreen
-2. 右上角菜单 → **允许受限制的设置**
-3. 回到应用，打开无障碍设置并启用 Safer Lockscreen
-
-### 编译与安装
-
-需要 JDK 17+、Android SDK Platform 37 和 Build-Tools 37.0.0。
-
-```bash
-./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
-
-`minSdk` 为 31，`targetSdk` / `compileSdk` 为 37。仓库里没有签名密钥。调试 APK 使用本机的 debug 签名。
-
-第一次打开主界面时，会先显示一段风险说明。确认按钮会禁用 5 秒并显示倒计时，到时后需要你点一下才会继续。点外面或按返回键都不会关掉它，时间到了也不会自己消失。确认之后，除非清除应用数据或重新安装，否则不会再出现。
-
-### 如果已经无法正常使用手机
-
-本应用未经充分测试和验证，有小概率导致无法正常解锁。顶部遮罩仍可能妨碍锁屏上的电源菜单。不要指望在锁屏上长按电源键来恢复。
-
-1. 如果这台手机以前已经授权过 USB 调试，把它连到电脑上，然后执行 `adb uninstall com.whstudio.saferlockscreen`。
-2. 否则，按住电源键大约 30 秒，直到手机重新启动。不要使用锁屏上的电源菜单。
-3. 出现 Google 的 G 标志时，按住音量下键，直到手机启动完成。这会进入安全模式。
-4. 在安全模式中，如果设备管理器仍在启用，请先停用它（可在应用内，或到“设置 → 安全 → 设备管理应用”）。然后卸载 Safer Lockscreen。重启手机即可退出安全模式。
-
-### 限制
-
-通知栏或电源菜单可能在被关掉前短暂闪现。Android 16 及更新版本的 System UI 在锁屏显示时，通知栏窗口一直都在，包括收起的时候。应用用顶部边缘挡住下拉，只有面板盖住屏幕大部分时才会收起它，并且不会因此关闭屏幕。这不能代替一个可靠的屏幕锁定。紧急呼叫路径、电源键上的紧急入口，以及不同厂商的差异，见上面的英文说明。
 
 ## License
 
