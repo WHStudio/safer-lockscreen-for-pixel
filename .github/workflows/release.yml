@@ -1,0 +1,130 @@
+name: Publish release APK
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Same SDK packages as the debug workflow. API 37 is platforms;android-37.0.
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          log-accepted-android-sdk-licenses: false
+          packages: platform-tools platforms;android-37.0 build-tools;37.0.0 build-tools;36.0.0
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Require release signing secrets
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "${RELEASE_KEYSTORE_BASE64}"
+          test -n "${RELEASE_STORE_PASSWORD}"
+          test -n "${RELEASE_KEY_ALIAS}"
+          test -n "${RELEASE_KEY_PASSWORD}"
+
+      - name: Decode release keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${RELEASE_KEYSTORE_BASE64}" | base64 -d > "${RUNNER_TEMP}/release.keystore"
+
+      - name: Assemble signed release APK and run unit tests
+        env:
+          RELEASE_KEYSTORE_FILE: ${{ runner.temp }}/release.keystore
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease :app:testDebugUnitTest --stacktrace
+
+      - name: Name the download
+        id: apk
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="untagged"
+          fi
+          cp app/build/outputs/apk/release/app-release.apk "SaferLockscreen-${version}.apk"
+          echo "file=SaferLockscreen-${version}.apk" >> "${GITHUB_OUTPUT}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Publish GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="${{ steps.apk.outputs.version }}"
+          file="${{ steps.apk.outputs.file }}"
+          gh release create "${GITHUB_REF_NAME}" "${file}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "Safer Lockscreen ${version}" \
+            --notes "$(cat <<EOF
+          ## English
+
+          Safer Lockscreen ${version} blocks the lock-screen Quick Settings and notification-shade pull-down on a Google Pixel, and it can close the power menu while the device is locked.
+
+          Protection covers the top edge of the lock screen. It dismisses a panel only when that panel covers most of the screen. The app does not turn the screen off.
+
+          The first time you open the app, read the warning. The confirm button stays disabled for 5 seconds, then you tap it. The warning does not appear again unless you clear the app data or reinstall.
+
+          There is no internet permission, and no ads, analytics, or crash reporting. This project is not affiliated with Cerberus.
+
+          ### If you cannot use the phone
+
+          The overlay can get in the way of the lock-screen power menu. Do not count on long-pressing Power on the lock screen to recover.
+
+          1. If USB debugging was already authorized, connect the phone and run \`adb uninstall com.whstudio.saferlockscreen\`.
+          2. Otherwise, hold the Power button for about 30 seconds until the phone restarts. Do not use the lock-screen power menu for this.
+          3. When the Google G logo appears, hold Volume Down until the phone finishes starting. That opens Safe Mode.
+          4. In Safe Mode, deactivate device admin if it is still on, then uninstall Safer Lockscreen. Restart the phone to leave Safe Mode.
+
+          ## 简体中文
+
+          Safer Lockscreen ${version} 在 Google Pixel 锁定时阻止下拉快捷设置和通知栏，也可以在设备锁定时关闭电源菜单。
+
+          防护盖住锁屏顶部边缘。只有面板盖住屏幕大部分时，才会收起该面板。应用不会关闭屏幕。
+
+          第一次打开应用时，请阅读风险说明。确认按钮会禁用 5 秒，然后需要你点一下。除非清除应用数据或重新安装，否则不会再出现。
+
+          没有网络权限，没有广告、统计或崩溃上报。本项目与 Cerberus 无关。
+
+          ### 如果已经无法正常使用手机
+
+          顶部遮罩仍可能妨碍锁屏上的电源菜单。不要指望在锁屏上长按电源键来恢复。
+
+          1. 如果以前已经授权过 USB 调试，连接电脑后执行 \`adb uninstall com.whstudio.saferlockscreen\`。
+          2. 否则，按住电源键大约 30 秒，直到手机重新启动。不要使用锁屏上的电源菜单。
+          3. 出现 Google 的 G 标志时，按住音量下键，直到手机启动完成。这会进入安全模式。
+          4. 在安全模式中，如果设备管理器仍在启用，请先停用它，然后卸载 Safer Lockscreen。重启手机即可退出安全模式。
+          EOF
+          )"
+
+      - uses: actions/upload-artifact@v7
+        if: github.ref_type != 'tag'
+        with:
+          name: safer-lockscreen-release
+          path: SaferLockscreen-*.apk
+          if-no-files-found: error
