@@ -33,6 +33,7 @@
     <string name="step_a11y_action">打开无障碍设置</string>
     <string name="step_a11y_done">无障碍服务已启用</string>
     <string name="step_a11y_restricted">如果开关是灰的，请打开应用信息，点菜单，再点“允许受限制的设置”。然后回来启用“更安全锁屏”。</string>
+    <string name="settings_open_failed">无法打开该设置页面。请按本页上的步骤操作。</string>
 
     <string name="step_protect_title">3. 防护</string>
     <string name="protection_switch">拦截锁屏面板</string>

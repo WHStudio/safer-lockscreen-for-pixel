@@ -4,7 +4,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Bundle
-import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,10 +18,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.whstudio.saferlockscreen.admin.LockDeviceAdminReceiver
 import com.whstudio.saferlockscreen.guard.GuardPreferences
 import com.whstudio.saferlockscreen.guard.GuardSettings
-import com.whstudio.saferlockscreen.service.ShadeGuardService
 import com.whstudio.saferlockscreen.ui.HomeScreen
 import com.whstudio.saferlockscreen.ui.ProtectionState
 import com.whstudio.saferlockscreen.ui.SaferTheme
+import com.whstudio.saferlockscreen.ui.SystemSettingsTargets
 import com.whstudio.saferlockscreen.ui.loadProtectionState
 
 class MainActivity : ComponentActivity() {
@@ -73,7 +73,9 @@ class MainActivity : ComponentActivity() {
             putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, LockDeviceAdminReceiver.component(this@MainActivity))
             putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, getString(R.string.device_admin_explanation))
         }
-        startActivity(intent)
+        if (!startIfAvailable(intent)) {
+            showSettingsFailure()
+        }
     }
 
     private fun disableAdmin() {
@@ -86,12 +88,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openAccessibility() {
-        val component = android.content.ComponentName(this, ShadeGuardService::class.java).flattenToString()
-        val details = Intent(ACTION_ACCESSIBILITY_DETAILS_SETTINGS).apply {
-            putExtra(Intent.EXTRA_COMPONENT_NAME, component)
-        }
-        if (!startIfAvailable(details)) {
-            startIfAvailable(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        val opened = startIfAvailable(Intent(SystemSettingsTargets.accessibilityAction()))
+        if (!opened) {
+            showSettingsFailure()
         }
     }
 
@@ -103,16 +102,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startIfAvailable(intent: Intent): Boolean {
+        if (!SystemSettingsTargets.isSafeToStart(intent.action)) return false
         return try {
             startActivity(intent)
             true
         } catch (_: ActivityNotFoundException) {
             false
+        } catch (_: SecurityException) {
+            false
         }
     }
 
-    companion object {
-        private const val ACTION_ACCESSIBILITY_DETAILS_SETTINGS =
-            "android.settings.ACCESSIBILITY_DETAILS_SETTINGS"
+    private fun showSettingsFailure() {
+        Toast.makeText(this, R.string.settings_open_failed, Toast.LENGTH_LONG).show()
     }
 }

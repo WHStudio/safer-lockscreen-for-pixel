@@ -33,6 +33,7 @@
     <string name="step_a11y_action">Open accessibility settings</string>
     <string name="step_a11y_done">Accessibility enabled</string>
     <string name="step_a11y_restricted">If the switch is disabled, open App info, choose the menu, and tap Allow restricted settings. Then come back and enable Safer Lockscreen.</string>
+    <string name="settings_open_failed">Could not open that settings screen. Use the steps on this page.</string>
 
     <string name="step_protect_title">3. Protection</string>
     <string name="protection_switch">Block lock-screen panels</string>
