@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Safer Lockscreen</string>
+
+    <string name="accessibility_service_description">While the device is locked, Safer Lockscreen watches for the Quick Settings panel, the notification shade, and the power menu, then closes those panels. It covers the top edge of the lock screen so the shade swipe does not start. It looks only at system-window identity: window titles, types, class names, and view ids. It does not read notification text, messages, or passwords, does not take screenshots, does not turn the screen off, and does nothing after you unlock.</string>
+    <string name="accessibility_service_summary">Blocks lock-screen Quick Settings, the notification shade, and the power menu.</string>
+    <string name="device_admin_disable_warning">Deactivating device admin lets Android uninstall Safer Lockscreen. Quick Settings blocking does not depend on device admin.</string>
+
+    <string name="status_active">Protection active</string>
+    <string name="status_off">Protection off</string>
+    <string name="status_setup">Setup needed</string>
+
+    <string name="hero_active">While this phone is locked, pulling down Quick Settings is blocked. The power menu follows the switch below. The screen stays on so you can enter your PIN. After you unlock, everything works normally.</string>
+    <string name="hero_off">Accessibility is on. Turn on protection when you want the lock screen guarded.</string>
+    <string name="hero_need_accessibility">Enable the accessibility service. That is how the app can see the shade and power menu and close them. Android shows a system warning because this service can observe windows. The description on that screen is what this app actually does.</string>
+    <string name="hero_no_secure_lock">Set a PIN, pattern, or password. A swipe-only lock screen does not stop someone who has the phone.</string>
+
+    <string name="intro">Stock Pixel Android still lets anyone pull down Quick Settings on the lock screen and toggle airplane mode, Wi-Fi, or mobile data. The Android 17 “Lock Quick Settings connectivity” setting only freezes a few tiles. This app blocks the shade itself. It does not turn the screen off.</string>
+
+    <string name="section_setup">Set up</string>
+    <string name="legacy_admin_title">Device admin is still on</string>
+    <string name="legacy_admin_body">Deactivate device admin here before you uninstall. Android will not uninstall an app that is still an active device admin. Quick Settings blocking does not depend on device admin.</string>
+    <string name="step_admin_deactivate">Deactivate device admin</string>
+
+    <string name="step_a11y_title">1. Accessibility</string>
+    <string name="step_a11y_body">Used to recognize the lock-screen shade, Quick Settings, and power menu, then dismiss them, and to cover the top-edge swipe. It does not read notification contents, does not log keystrokes, does not take screenshots, and does not turn the screen off.</string>
+    <string name="step_a11y_action">Open accessibility settings</string>
+    <string name="step_a11y_done">Accessibility enabled</string>
+    <string name="step_a11y_restricted">If the switch is disabled, open App info, choose the menu, and tap Allow restricted settings. Then come back and enable Safer Lockscreen.</string>
+    <string name="settings_open_failed">Could not open that settings screen. Use the steps on this page.</string>
+
+    <string name="step_protect_title">2. Protection</string>
+    <string name="protection_switch">Block lock-screen panels</string>
+    <string name="protection_switch_summary">Master switch. When this is off, Quick Settings and the power menu are left alone.</string>
+
+    <string name="toggle_qs">Block Quick Settings on the lock screen</string>
+    <string name="toggle_qs_summary">Covers the top edge and closes the notification shade and Quick Settings when that panel is actually open.</string>
+    <string name="toggle_power">Block power menu on the lock screen</string>
+    <string name="toggle_power_summary">Closes the power-off and restart menu. The lock-screen Emergency button still works. The power button shortcut into that menu may be interrupted. Do not rely on that menu to recover.</string>
+
+    <string name="secure_lock_warning">This phone has no PIN, pattern, or password. Set one in system Settings. Without it, a lock screen does not stop someone who has the phone.</string>
+    <string name="smart_lock_note">Smart Lock and Extend Unlock count as unlocked. This app stays out of the way so your own Quick Settings keep working. Protection applies when Android still requires authentication (isDeviceLocked).</string>
+
+    <string name="limitations_title">Limitations</string>
+    <string name="limitations_body">The shade or power menu can flash briefly before it closes. Gesture timing differs by Android build. Emergency calling from the lock-screen Emergency button is left alone, and Back is not pressed while the emergency dialer is open, so that path can sometimes still reach Quick Settings. This is not a replacement for a strong screen lock.</string>
+
+    <string name="privacy_title">Privacy</string>
+    <string name="privacy_body">No internet permission. No ads, analytics, crash reporting, or accounts. Nothing is sent off the phone, and nothing is shared with other apps. Settings stay in device-protected storage so protection can arm after a reboot, before the first unlock. Backup is disabled.</string>
+
+    <string name="uninstall_title">Turn off and uninstall</string>
+    <string name="uninstall_body">Turn the accessibility service off under Settings, Accessibility. If device admin is still on, deactivate it on this screen or in Settings, Security, Device admin apps. Android will not uninstall an active device admin.</string>
+
+    <string name="warning_title">Please understand the risk</string>
+    <string name="warning_body">This app has not been fully tested or verified. There is a small chance it could prevent you from unlocking your device normally. Please understand the risk and carefully read the recovery steps below.\n\nThe overlay can get in the way of the lock-screen power menu. Do not count on long-pressing Power on the lock screen to recover.\n\nIf you cannot use the phone:\n\n1. If USB debugging was already authorized, connect the phone to a computer and run:\nadb uninstall com.whstudio.saferlockscreen\n\n2. Otherwise, force a restart by holding the Power button for about 30 seconds, until the phone restarts. Do not use the lock-screen power menu for this.\n\n3. When the Google G logo appears, hold Volume Down until the phone finishes starting. That opens Safe Mode.\n\n4. In Safe Mode, deactivate device admin if it is still on. You can do that in this app, or in Settings, Security, Device admin apps. Then uninstall Safer Lockscreen. Restart the phone to leave Safe Mode.</string>
+    <string name="warning_confirm">I understand</string>
+    <string name="warning_confirm_wait">I understand (%1$d)</string>
+
+    <string name="cd_protection_status">Protection status</string>
+    <string name="footer_close">OK</string>
+</resources>
