@@ -66,7 +66,7 @@ internal object SurfaceClassifier {
             return true
         }
         // Button labels ("Power off", "Restart", "关机") are not enough. They can be event
-        // text on the lock screen, and treating them as the power menu force-locked the phone.
+        // text on the lock screen and must not be treated as the power menu.
         return normalize(window.title) in POWER_MENU_TITLES
     }
 

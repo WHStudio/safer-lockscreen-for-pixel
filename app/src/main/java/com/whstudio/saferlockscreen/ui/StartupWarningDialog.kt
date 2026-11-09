@@ -25,8 +25,8 @@ import com.whstudio.saferlockscreen.R
 import kotlinx.coroutines.delay
 
 /**
- * Shown every time the main screen opens. The confirm button stays disabled for
- * [COUNTDOWN_SECONDS], then waits for a tap. The dialog does not dismiss itself.
+ * First-launch warning. The confirm button stays disabled for [COUNTDOWN_SECONDS], then
+ * waits for a tap. The dialog does not dismiss itself.
  */
 @Composable
 internal fun StartupWarningDialog(onConfirm: () -> Unit) {

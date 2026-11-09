@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">更安全锁屏</string>
+    <string name="app_name">Safer Lockscreen</string>
 
-    <string name="accessibility_service_description">设备锁定时，更安全锁屏会识别快捷设置、通知栏和电源菜单，然后把这些面板收起。它会盖住锁屏顶部边缘，使下拉无法开始。它只查看系统窗口的身份信息：窗口标题、类型、类名和视图 id。它不读取通知正文、短信或密码，不截屏，不关闭屏幕，解锁之后也不会做任何事。</string>
+    <string name="accessibility_service_description">设备锁定时，Safer Lockscreen 会识别快捷设置、通知栏和电源菜单，然后把这些面板收起。它会盖住锁屏顶部边缘，使下拉无法开始。它只查看系统窗口的身份信息：窗口标题、类型、类名和视图 id。它不读取通知正文、短信或密码，不截屏，不关闭屏幕，解锁之后也不会做任何事。</string>
     <string name="accessibility_service_summary">在锁屏上阻止快捷设置、通知栏和电源菜单。</string>
-    <string name="device_admin_disable_warning">更安全锁屏已经不再锁定手机。停用设备管理器后，Android 才允许卸载本应用。快捷设置拦截不依赖设备管理器。</string>
+    <string name="device_admin_disable_warning">停用设备管理器后，Android 才允许卸载 Safer Lockscreen。快捷设置拦截不依赖设备管理器。</string>
 
     <string name="status_active">防护已开启</string>
     <string name="status_off">防护已关闭</string>
@@ -18,15 +18,15 @@
     <string name="intro">Pixel 的原版系统仍然允许任何人在锁屏上下拉快捷设置，并切换飞行模式、WLAN 或移动数据。Android 17 的“锁定快捷设置连接”只会冻住少数开关。本应用拦截的是通知栏本身，并且不会关闭屏幕。</string>
 
     <string name="section_setup">设置</string>
-    <string name="legacy_admin_title">旧版本的设备管理器仍在启用</string>
-    <string name="legacy_admin_body">更早的版本为了强制锁屏而申请了设备管理器。这个版本已经不再这样做。卸载前请在这里停用设备管理器。设备管理器仍处于启用状态时，Android 不允许卸载。</string>
+    <string name="legacy_admin_title">设备管理器仍在启用</string>
+    <string name="legacy_admin_body">卸载前请在这里停用设备管理器。设备管理器仍处于启用状态时，Android 不允许卸载。快捷设置拦截不依赖设备管理器。</string>
     <string name="step_admin_deactivate">停用设备管理器</string>
 
     <string name="step_a11y_title">1. 无障碍服务</string>
     <string name="step_a11y_body">用于识别锁屏上的通知栏、快捷设置和电源菜单并收起它们，同时盖住顶部下拉。不读取通知内容，不记录按键，不截屏，也不关闭屏幕。</string>
     <string name="step_a11y_action">打开无障碍设置</string>
     <string name="step_a11y_done">无障碍服务已启用</string>
-    <string name="step_a11y_restricted">如果开关是灰的，请打开应用信息，点菜单，再点“允许受限制的设置”。然后回来启用“更安全锁屏”。</string>
+    <string name="step_a11y_restricted">如果开关是灰的，请打开应用信息，点菜单，再点“允许受限制的设置”。然后回来启用 Safer Lockscreen。</string>
     <string name="settings_open_failed">无法打开该设置页面。请按本页上的步骤操作。</string>
 
     <string name="step_protect_title">2. 防护</string>
@@ -47,13 +47,14 @@
     <string name="privacy_title">隐私</string>
     <string name="privacy_body">没有网络权限。没有广告、统计、崩溃上报或账号。数据不会离开这台手机，也不会分享给其他应用。设置保存在设备受保护存储中，以便重启后、首次解锁前就能启动防护。已关闭备份。</string>
 
-    <string name="uninstall_title">关闭或卸载</string>
-    <string name="uninstall_body">在“设置 → 无障碍”中关闭本服务。如果旧版本留下的设备管理器仍在启用，请在本页或“设置 → 安全和隐私 → 设备管理应用”里停用。设备管理器仍处于启用状态时，Android 不允许卸载。</string>
+    <string name="uninstall_title">关闭与卸载</string>
+    <string name="uninstall_body">在“设置 → 无障碍”中关闭本服务。如果设备管理器仍在启用，请在本页或“设置 → 安全和隐私 → 设备管理应用”里停用。设备管理器仍处于启用状态时，Android 不允许卸载。</string>
 
-    <string name="warning_title">继续之前请先阅读</string>
-    <string name="warning_body">防护可能会误触发。\n\n本应用的旧版本会在锁屏一亮起时关闭屏幕，因此来不及输入 PIN。这个版本不会关闭屏幕。顶部的遮罩仍可能妨碍锁屏上的电源菜单。不要指望在锁屏上长按电源键来恢复。\n\n如果手机已经无法使用：\n\n1. 如果这台手机以前已经授权过 USB 调试，把它连到电脑上，然后执行：\nadb uninstall com.whstudio.saferlockscreen\n\n2. 否则，按住电源键大约 30 秒，直到手机重新启动，以此强制重启。不要使用锁屏上的电源菜单。\n\n3. 出现 Google 的 G 标志时，按住音量下键，直到手机启动完成。这会进入安全模式。\n\n4. 在安全模式中，如果设备管理器仍在启用，请先停用它。可以在本应用里停用，也可以到“设置 → 安全 → 设备管理应用”。然后卸载“更安全锁屏”。重启手机即可退出安全模式。</string>
-    <string name="warning_confirm">我已了解</string>
-    <string name="warning_confirm_wait">我已了解（%1$d）</string>
+    <string name="warning_title">请先了解风险</string>
+    <string name="warning_body">本应用未经充分测试和验证，有小概率导致您无法正常解锁设备。请务必了解风险，并仔细阅读以下挽回措施。\n\n顶部遮罩仍可能妨碍锁屏上的电源菜单。不要指望在锁屏上长按电源键来恢复。\n\n如果已经无法正常使用手机：\n\n1. 如果这台手机以前已经授权过 USB 调试，把它连到电脑上，然后执行：\nadb uninstall com.whstudio.saferlockscreen\n\n2. 否则，按住电源键大约 30 秒，直到手机重新启动，以此强制重启。不要使用锁屏上的电源菜单。\n\n3. 出现 Google 的 G 标志时，按住音量下键，直到手机启动完成。这会进入安全模式。\n\n4. 在安全模式中，如果设备管理器仍在启用，请先停用它。可以在本应用里停用，也可以到“设置 → 安全 → 设备管理应用”。然后卸载 Safer Lockscreen。重启手机即可退出安全模式。</string>
+    <string name="warning_confirm">我知道了</string>
+    <string name="warning_confirm_wait">我知道了（%1$d）</string>
 
     <string name="cd_protection_status">防护状态</string>
+    <string name="footer_close">好</string>
 </resources>

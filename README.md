@@ -20,7 +20,7 @@ While the phone is locked:
 - The clock, PIN pad, pattern, fingerprint target, and the rest of the lock screen stay uncovered.
 - The app does not turn the screen off. There is no force-lock mode.
 
-Protection has one behavior. A transparent accessibility overlay covers the top edge so the shade swipe does not start. If a Quick Settings or notification panel is actually expanded across most of the screen, the app dismisses it. A separate switch closes the power menu the same way, without blanking the display. Older “Dismiss shade” and “Force lock” choices are ignored.
+Protection has one behavior. A transparent accessibility overlay covers the top edge so the shade swipe does not start. If a Quick Settings or notification panel is actually expanded across most of the screen, the app dismisses it. A separate switch closes the power menu the same way, without blanking the display.
 
 ### Why it is built this way
 
@@ -41,7 +41,7 @@ The top-edge overlay is an accessibility overlay (`TYPE_ACCESSIBILITY_OVERLAY`) 
 
 The shade window is above normal app windows. An accessibility overlay is the supported way for an accessibility service to sit above it. If a swipe still opens the panel, the app dismisses it only when that panel covers most of the screen. Seeing the lock screen, the keyguard, a collapsed `NotificationShade` window, or `ShadeScene` does not turn the display off.
 
-This version does not use device admin and does not call `DevicePolicyManager.lockNow()`. The device-admin component remains only so an administrator enabled by an older build can be deactivated. Android will not uninstall an app while that administrator is still active. There is no wipe and no password reset.
+Protection does not use device admin and does not call `DevicePolicyManager.lockNow()`. If device admin is still on, Android will not uninstall the app until you deactivate it. There is no wipe and no password reset.
 
 The accessibility service, device-admin receiver, boot receiver, and application are `directBootAware`. Settings are stored in device-protected storage. After a reboot, before the first unlock, an enabled service can still guard the lock screen. The manifest receiver listens for `LOCKED_BOOT_COMPLETED`, `BOOT_COMPLETED`, and `USER_UNLOCKED`.
 
@@ -52,7 +52,7 @@ There is no foreground service and no persistent notification. The system keeps 
 | Permission or capability | Why | How to turn it off |
 | --- | --- | --- |
 | Accessibility service | See when the shade, Quick Settings, or power menu is showing, dismiss an expanded panel, and cover the top-edge swipe. Android warns that a service with window access can observe the screen. This one uses that access only to identify those system panels. | Settings → Accessibility → Safer Lockscreen → Off |
-| Device admin, only if an older build turned it on | Not used for protection. It can still block uninstall until you deactivate it. | In the app, **Deactivate device admin**, or Settings → Security → Device admin apps |
+| Device admin, if it is still on | Not used for protection. An active device admin blocks uninstall until you deactivate it. | In the app, **Deactivate device admin**, or Settings → Security → Device admin apps |
 | `RECEIVE_BOOT_COMPLETED` | Hear boot and the first unlock so protection is re-checked. Granted at install. No prompt. | Uninstall the app |
 | Internet | **Not requested.** | — |
 
@@ -72,10 +72,10 @@ The in-app screen repeats this.
 ## Set up on the phone
 
 1. Install the debug APK (see below).
-2. Open **Safer Lockscreen**. Each time the main screen opens, read the warning. The confirm button stays disabled for 5 seconds, then you tap it. The dialog does not close by itself, and it does not close if you tap outside it or press Back.
+2. Open **Safer Lockscreen**. The first time the main screen opens, read the warning. The confirm button stays disabled for 5 seconds, then you tap it. The dialog does not close by itself, and it does not close if you tap outside it or press Back. It does not appear again unless you clear the app’s data or reinstall.
 3. Enable the **accessibility service**. Read its description. It matches the paragraph above.
 4. Turn on **Block lock-screen panels**. Both feature toggles can stay on.
-5. If the screen says an older device admin is still on, deactivate it.
+5. If the screen says device admin is still on, deactivate it.
 6. Set a PIN, pattern, or password if you have not. A swipe-only lock screen is not a lock.
 7. Lock the phone and try to swipe down from the top. Quick Settings should not stay open. The screen should stay on so you can enter the PIN. Use the lock-screen Emergency button to confirm it still opens.
 
@@ -108,23 +108,21 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 GitHub Actions builds the debug APK and runs the unit tests on push and pull request. The workflow installs SDK platform `android-37.0` itself.
 
-## If the phone turns the screen off, or you cannot get past the lock screen
+## If you cannot use the phone
 
-Older builds could treat the lock screen itself as open Quick Settings and call force-lock. The phone then woke and immediately turned the screen off again, so the PIN pad never stayed up. A force-lock build could also flicker the display off in Safe Mode. This build does not call `lockNow()`. The overlay can still interfere with the lock-screen power menu, so do not rely on long-pressing Power there.
+This app has not been fully tested on every Pixel build. There is a small chance it could prevent you from unlocking normally. The overlay can get in the way of the lock-screen power menu. Do not count on long-pressing Power on the lock screen to recover.
 
-Recover without opening the app:
-
-1. If USB debugging was already authorized, connect the phone and run:
+1. If USB debugging was already authorized, connect the phone to a computer and run:
 
    ```bash
    adb uninstall com.whstudio.saferlockscreen
    ```
 
-2. Otherwise, force a restart by holding the Power button for about 30 seconds, until the phone restarts. Do not depend on the lock-screen power menu.
+2. Otherwise, force a restart by holding the Power button for about 30 seconds, until the phone restarts. Do not use the lock-screen power menu for this.
 
-3. When the Google G logo appears, hold Volume Down until startup finishes. That opens Safe Mode. Third-party apps, including this one, do not run their protection there.
+3. When the Google G logo appears, hold Volume Down until the phone finishes starting. That opens Safe Mode.
 
-4. In Safe Mode, deactivate device admin if an older build left it enabled (Settings → Security → Device admin apps). Then uninstall Safer Lockscreen. Restart to leave Safe Mode.
+4. In Safe Mode, deactivate device admin if it is still on (in the app, or in Settings → Security → Device admin apps). Then uninstall Safer Lockscreen. Restart the phone to leave Safe Mode.
 
 ## Known limitations
 
@@ -143,7 +141,7 @@ The app has no network permission and no code that opens a socket. Preferences n
 
 ## 中文说明
 
-**更安全锁屏**是一个面向 Google Pixel 的小型、隐私优先的 Android 应用。手机锁定时，它阻止下拉快捷设置和通知栏，也可以关闭电源菜单。
+**Safer Lockscreen** 是一个面向 Google Pixel 的小型、隐私优先的 Android 应用。手机锁定时，它阻止下拉快捷设置和通知栏，也可以关闭电源菜单。
 
 Pixel 原版系统不能关闭锁屏上的通知栏下拉。Android 17 的“锁定快捷设置连接”只会冻住 WLAN、蓝牙、移动数据和飞行模式等少数开关，通知栏本身仍能拉开。本应用拦截的是通知栏下拉。
 
@@ -158,16 +156,16 @@ Pixel 原版系统不能关闭锁屏上的通知栏下拉。Android 17 的“锁
 - 锁屏上的**紧急呼叫**按钮不会被挡住。紧急拨号或个人安全 SOS 界面打开时，不会按返回键，避免掐断通话。因此这条路径有时仍可能碰到快捷设置。
 - 应用不会关闭屏幕。没有强制锁屏。
 
-防护只有一种行为：用无障碍悬浮层盖住顶部下拉区域；只有快捷设置或通知栏真正盖住屏幕大部分时才收起它。电源菜单用另一个开关以同样的方式关闭，不会熄屏。旧版本里选择的“收起通知栏”或“强制锁屏”会被忽略。
+防护只有一种行为：用无障碍悬浮层盖住顶部下拉区域；只有快捷设置或通知栏真正盖住屏幕大部分时才收起它。电源菜单用另一个开关以同样的方式关闭，不会熄屏。
 
-无障碍服务、开机广播和应用本身都标记了 `directBootAware`，设置放在设备受保护存储中，因此重启后、首次解锁前也能防护。没有常驻通知。这个版本不使用设备管理器，也不调用 `lockNow()`。设备管理器组件只为了让旧版本已经启用的管理员可以被停用。管理员仍启用时，Android 不允许卸载。不能清除数据，也不能重置密码。
+无障碍服务、开机广播和应用本身都标记了 `directBootAware`，设置放在设备受保护存储中，因此重启后、首次解锁前也能防护。没有常驻通知。防护不使用设备管理器，也不调用 `lockNow()`。如果设备管理器仍在启用，Android 不允许卸载，需要先停用。不能清除数据，也不能重置密码。
 
 无障碍服务只根据窗口标题、窗格标题、类名和视图 id 识别系统面板。不读取通知正文、短信或密码，也不截屏。
 
 ### 权限与关闭方式
 
-- **无障碍服务**：识别并关闭真正打开的锁屏通知栏、快捷设置和电源菜单，并挡住顶部下拉。关闭：设置 → 无障碍 → 更安全锁屏 → 关闭。
-- **设备管理器**：防护不再使用它。如果旧版本启用过，卸载前必须停用。关闭：应用内“停用设备管理器”，或设置 → 安全 → 设备管理应用。
+- **无障碍服务**：识别并关闭真正打开的锁屏通知栏、快捷设置和电源菜单，并挡住顶部下拉。关闭：设置 → 无障碍 → Safer Lockscreen → 关闭。
+- **设备管理器**：防护不使用它。如果它仍在启用，卸载前必须停用。关闭：应用内“停用设备管理器”，或设置 → 安全 → 设备管理应用。
 - **开机完成广播**：重启和首次解锁时复查防护。安装时授予，没有弹窗。
 - **没有网络权限。** 没有广告、统计或崩溃上报。数据不离开手机，也不提供给其他应用。已关闭备份。
 
@@ -175,9 +173,9 @@ Pixel 原版系统不能关闭锁屏上的通知栏下拉。Android 17 的“锁
 
 侧载应用在 Android 13 及更新版本上，常常要先允许受限制的设置，无障碍开关才可点：
 
-1. 设置 → 应用 → 更安全锁屏
+1. 设置 → 应用 → Safer Lockscreen
 2. 右上角菜单 → **允许受限制的设置**
-3. 回到应用，打开无障碍设置并启用“更安全锁屏”
+3. 回到应用，打开无障碍设置并启用 Safer Lockscreen
 
 ### 编译与安装
 
@@ -190,22 +188,20 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 `minSdk` 为 31，`targetSdk` / `compileSdk` 为 37。仓库里没有签名密钥。调试 APK 使用本机的 debug 签名。
 
-每次打开主界面，都会先显示一段说明。确认按钮会禁用 5 秒并显示倒计时，到时后需要你点一下才会继续。点外面或按返回键都不会关掉它，时间到了也不会自己消失。
+第一次打开主界面时，会先显示一段风险说明。确认按钮会禁用 5 秒并显示倒计时，到时后需要你点一下才会继续。点外面或按返回键都不会关掉它，时间到了也不会自己消失。确认之后，除非清除应用数据或重新安装，否则不会再出现。
 
-### 如果屏幕被关掉，或无法通过锁屏
+### 如果已经无法正常使用手机
 
-旧版本可能把锁屏本身当成已经打开的快捷设置并强制锁屏。手机会亮一下马上再熄灭，PIN 键盘停不住。强制锁屏的版本甚至可能让安全模式的屏幕闪一下就关掉。这个版本不会调用 `lockNow()`。顶部遮罩仍可能妨碍锁屏上的电源菜单，不要指望在锁屏上长按电源键来恢复。
+本应用未经充分测试和验证，有小概率导致无法正常解锁。顶部遮罩仍可能妨碍锁屏上的电源菜单。不要指望在锁屏上长按电源键来恢复。
 
-不打开应用的恢复办法：
-
-1. 如果以前已经授权过 USB 调试，连接电脑后执行 `adb uninstall com.whstudio.saferlockscreen`。
-2. 否则按住电源键大约 30 秒，直到手机重新启动。不要依赖锁屏上的电源菜单。
-3. 出现 Google 的 G 标志时，按住音量下键，直到启动完成。这会进入安全模式。第三方应用的防护不会在那里运行。
-4. 在安全模式中，如果旧版本留下了设备管理器，请先在“设置 → 安全 → 设备管理应用”里停用，然后卸载“更安全锁屏”。重启即可退出安全模式。
+1. 如果这台手机以前已经授权过 USB 调试，把它连到电脑上，然后执行 `adb uninstall com.whstudio.saferlockscreen`。
+2. 否则，按住电源键大约 30 秒，直到手机重新启动。不要使用锁屏上的电源菜单。
+3. 出现 Google 的 G 标志时，按住音量下键，直到手机启动完成。这会进入安全模式。
+4. 在安全模式中，如果设备管理器仍在启用，请先停用它（可在应用内，或到“设置 → 安全 → 设备管理应用”）。然后卸载 Safer Lockscreen。重启手机即可退出安全模式。
 
 ### 限制
 
-通知栏或电源菜单可能在被关掉前短暂闪现。Android 16 及更新版本的 System UI 在锁屏显示时，通知栏窗口一直都在，包括收起的时候。“自动”用顶部边缘挡住下拉，只有面板盖住屏幕大部分时才会收起它，并且不会因此强制锁屏。这不能代替一个可靠的屏幕锁定。紧急呼叫路径、电源键上的紧急入口、生物识别被跳过一次，以及不同厂商的差异，见上面的英文说明。
+通知栏或电源菜单可能在被关掉前短暂闪现。Android 16 及更新版本的 System UI 在锁屏显示时，通知栏窗口一直都在，包括收起的时候。应用用顶部边缘挡住下拉，只有面板盖住屏幕大部分时才会收起它，并且不会因此关闭屏幕。这不能代替一个可靠的屏幕锁定。紧急呼叫路径、电源键上的紧急入口，以及不同厂商的差异，见上面的英文说明。
 
 ## License
 

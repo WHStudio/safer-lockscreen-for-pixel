@@ -7,8 +7,8 @@ import android.content.Intent
 import com.whstudio.saferlockscreen.R
 
 /**
- * Kept so a device admin enabled by an older build can be deactivated.
- * The app does not call lockNow and does not ask to be activated.
+ * Lets the user deactivate device admin. The app does not call lockNow and does not
+ * ask to be activated. An active administrator still blocks uninstall.
  */
 class LockDeviceAdminReceiver : DeviceAdminReceiver() {
     override fun onDisableRequested(context: Context, intent: Intent): CharSequence {

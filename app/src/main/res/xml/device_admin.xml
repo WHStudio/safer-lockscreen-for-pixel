@@ -2,7 +2,7 @@
 <device-admin xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-policies>
         <!--
-            Kept so an administrator enabled by an older build can still be deactivated.
+            Present so an active device administrator can be deactivated.
             This app does not call lockNow.
         -->
         <force-lock />

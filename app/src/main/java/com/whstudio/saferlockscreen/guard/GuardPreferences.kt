@@ -11,9 +11,13 @@ internal class GuardPreferences(context: Context) {
     private val prefs: SharedPreferences = context.createDeviceProtectedStorageContext()
         .getSharedPreferences(NAME, Context.MODE_PRIVATE)
 
+    fun isWarningAcknowledged(): Boolean = prefs.getBoolean(KEY_WARNING_ACKNOWLEDGED, false)
+
+    fun acknowledgeWarning() {
+        prefs.edit().putBoolean(KEY_WARNING_ACKNOWLEDGED, true).apply()
+    }
+
     fun read(): GuardSettings {
-        // Older builds stored dismiss / force-lock here. Those modes are gone; drop the value
-        // so a previous choice cannot be read back into a lock path.
         if (prefs.contains(KEY_REMOVED_METHOD)) {
             prefs.edit().remove(KEY_REMOVED_METHOD).apply()
         }
@@ -48,5 +52,6 @@ internal class GuardPreferences(context: Context) {
         const val KEY_BLOCK_QS = "block_quick_settings"
         const val KEY_BLOCK_POWER = "block_power_menu"
         const val KEY_REMOVED_METHOD = "block_method"
+        const val KEY_WARNING_ACKNOWLEDGED = "warning_acknowledged"
     }
 }

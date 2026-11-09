@@ -22,12 +22,13 @@ import com.whstudio.saferlockscreen.ui.HomeScreen
 import com.whstudio.saferlockscreen.ui.ProtectionState
 import com.whstudio.saferlockscreen.ui.SaferTheme
 import com.whstudio.saferlockscreen.ui.StartupWarningDialog
+import com.whstudio.saferlockscreen.ui.shouldShowStartupWarning
 import com.whstudio.saferlockscreen.ui.SystemSettingsTargets
 import com.whstudio.saferlockscreen.ui.loadProtectionState
 
 class MainActivity : ComponentActivity() {
     private val preferences by lazy { GuardPreferences(this) }
-    private var showWarning by mutableStateOf(true)
+    private var showWarning by mutableStateOf(false)
     private var state by mutableStateOf(
         ProtectionState(
             settings = GuardSettings.DEFAULT,
@@ -41,6 +42,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         refresh()
+        showWarning = shouldShowStartupWarning(preferences.isWarningAcknowledged())
         setContent {
             val lifecycleOwner = LocalLifecycleOwner.current
             DisposableEffect(lifecycleOwner) {
@@ -61,7 +63,12 @@ class MainActivity : ComponentActivity() {
                     onOpenAccessibility = ::openAccessibility,
                 )
                 if (showWarning) {
-                    StartupWarningDialog(onConfirm = { showWarning = false })
+                    StartupWarningDialog(
+                        onConfirm = {
+                            preferences.acknowledgeWarning()
+                            showWarning = false
+                        },
+                    )
                 }
             }
         }
@@ -69,11 +76,6 @@ class MainActivity : ComponentActivity() {
 
     private fun refresh() {
         state = loadProtectionState(this, preferences.read())
-    }
-
-    override fun onStart() {
-        super.onStart()
-        showWarning = true
     }
 
     private fun disableAdmin() {
