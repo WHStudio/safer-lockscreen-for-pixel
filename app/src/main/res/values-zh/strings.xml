@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">更安全锁屏</string>
+
+    <string name="accessibility_service_description">设备锁定时，更安全锁屏会识别快捷设置、通知栏和电源菜单，然后收起它们或立即锁屏。它只查看系统窗口的身份信息：窗口标题、类型、类名和视图 id。它不读取通知正文、短信或密码，不截屏，解锁之后也不会做任何事。</string>
+    <string name="accessibility_service_summary">在锁屏上阻止快捷设置、通知栏和电源菜单。</string>
+    <string name="device_admin_explanation">更安全锁屏使用设备管理器，仅在手机锁定且快捷设置或电源菜单打开时立即锁屏（强制锁定）。它不能清除设备、重置 PIN 或更改密码。</string>
+    <string name="device_admin_disable_warning">关闭设备管理器后，强制锁屏会失效。依赖锁屏的快捷设置拦截会停止，直到你重新启用。</string>
+
+    <string name="status_active">防护已开启</string>
+    <string name="status_partial">防护未完成</string>
+    <string name="status_off">防护已关闭</string>
+    <string name="status_setup">需要完成设置</string>
+
+    <string name="hero_active">手机锁定时，下拉快捷设置会被拦住。电源菜单按下面的开关处理。解锁之后，这些功能恢复正常。</string>
+    <string name="hero_partial">无障碍服务已开启，但强制锁屏还需要设备管理器。收起面板和顶部边缘拦截仍可工作。请启用设备管理器，以完成“自动”或“强制锁屏”。</string>
+    <string name="hero_off">权限已经授予。需要守护锁屏时，打开防护即可。</string>
+    <string name="hero_need_accessibility">请启用无障碍服务。应用靠它识别通知栏和电源菜单并关闭它们。系统会显示警告，因为该服务可以观察窗口。那个页面上的说明就是本应用实际做的事。</string>
+    <string name="hero_need_admin_force">强制锁屏需要设备管理器。请启用它，或把方式改成“收起通知栏”。</string>
+    <string name="hero_no_secure_lock">请设置 PIN、图案或密码。仅滑动解锁不算锁定，没有锁屏凭证时强制锁屏也无法保住手机。</string>
+
+    <string name="intro">Pixel 的原版系统仍然允许任何人在锁屏上下拉快捷设置，并切换飞行模式、WLAN 或移动数据。Android 17 的“锁定快捷设置连接”只会冻住少数开关。本应用拦截的是通知栏本身。</string>
+
+    <string name="section_setup">设置</string>
+    <string name="step_admin_title">1. 设备管理器</string>
+    <string name="step_admin_body">只允许强制锁屏。不能清除数据、不能重置密码，也没有远程控制。卸载前可以在这里关闭它。</string>
+    <string name="step_admin_action">启用设备管理器</string>
+    <string name="step_admin_done">设备管理器已启用</string>
+    <string name="step_admin_deactivate">停用设备管理器</string>
+
+    <string name="step_a11y_title">2. 无障碍服务</string>
+    <string name="step_a11y_body">用于识别锁屏上的通知栏、快捷设置和电源菜单，然后把它们收起。不读取通知内容，不记录按键，也不截屏。</string>
+    <string name="step_a11y_action">打开无障碍设置</string>
+    <string name="step_a11y_done">无障碍服务已启用</string>
+    <string name="step_a11y_restricted">如果开关是灰的，请打开应用信息，点菜单，再点“允许受限制的设置”。然后回来启用“更安全锁屏”。</string>
+
+    <string name="step_protect_title">3. 防护</string>
+    <string name="protection_switch">拦截锁屏面板</string>
+    <string name="protection_switch_summary">总开关。关闭后，快捷设置和电源菜单都不会被干预。</string>
+
+    <string name="toggle_qs">在锁屏上阻止快捷设置</string>
+    <string name="toggle_qs_summary">手机锁定时关闭通知栏和快捷设置。</string>
+    <string name="toggle_power">在锁屏上阻止电源菜单</string>
+    <string name="toggle_power_summary">关闭关机和重新启动菜单。锁屏上的“紧急呼叫”按钮仍然可用。通过电源键进入该菜单的路径可能会被打断。</string>
+
+    <string name="method_title">拦截方式</string>
+    <string name="method_auto">自动</string>
+    <string name="method_auto_summary">盖住屏幕顶部边缘，让下拉通知栏的滑动无法开始；如果面板仍然出现就收起它；如果面板还在，就强制锁屏。推荐在 Pixel 上使用。</string>
+    <string name="method_dismiss">收起通知栏</string>
+    <string name="method_dismiss_summary">面板出现后把它收起。在部分 Pixel 系统上，仅靠这种方式会偏慢，开关可能闪一下。</string>
+    <string name="method_force_lock">强制锁屏</string>
+    <string name="method_force_lock_summary">面板一出现就关闭屏幕。接下来 Android 会要求输入一次 PIN、图案或密码。在这之前会跳过生物识别。</string>
+
+    <string name="secure_lock_warning">这台手机没有 PIN、图案或密码。请在系统设置里设置一个。否则锁屏挡不住拿到手机的人。</string>
+    <string name="smart_lock_note">智能解锁和延长解锁会被视为已解锁。此时本应用不会干预，你自己的快捷设置可以正常使用。只有 Android 仍要求验证（isDeviceLocked）时才会防护。</string>
+
+    <string name="limitations_title">限制</string>
+    <string name="limitations_body">通知栏或电源菜单可能在被关闭前短暂闪现。手势时机会因 Android 版本和厂商而不同。锁屏上的紧急呼叫按钮不会被拦截；紧急拨号界面打开时会暂停强制锁屏，因此这条路径有时仍可能碰到快捷设置。本应用不能代替一个可靠的屏幕锁定。</string>
+
+    <string name="privacy_title">隐私</string>
+    <string name="privacy_body">没有网络权限。没有广告、统计、崩溃上报或账号。数据不会离开这台手机，也不会分享给其他应用。设置保存在设备受保护存储中，以便重启后、首次解锁前就能启动防护。已关闭备份。</string>
+
+    <string name="uninstall_title">关闭或卸载</string>
+    <string name="uninstall_body">在这里停用设备管理器，或到“设置 → 安全和隐私 → 设备管理应用”里停用。然后在“设置 → 无障碍”中关闭本服务。设备管理器仍处于启用状态时，Android 不允许卸载。</string>
+
+    <string name="lock_now">立即锁屏</string>
+    <string name="lock_now_summary">用来确认强制锁屏是否有效。屏幕会关闭，下一次解锁需要 PIN、图案或密码。</string>
+
+    <string name="cd_protection_status">防护状态</string>
+</resources>
