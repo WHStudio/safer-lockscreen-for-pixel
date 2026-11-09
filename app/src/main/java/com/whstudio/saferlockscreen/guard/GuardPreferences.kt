@@ -12,11 +12,15 @@ internal class GuardPreferences(context: Context) {
         .getSharedPreferences(NAME, Context.MODE_PRIVATE)
 
     fun read(): GuardSettings {
+        // Older builds stored dismiss / force-lock here. Those modes are gone; drop the value
+        // so a previous choice cannot be read back into a lock path.
+        if (prefs.contains(KEY_REMOVED_METHOD)) {
+            prefs.edit().remove(KEY_REMOVED_METHOD).apply()
+        }
         return GuardSettings(
             protectionEnabled = prefs.getBoolean(KEY_ENABLED, GuardSettings.DEFAULT.protectionEnabled),
             blockQuickSettings = prefs.getBoolean(KEY_BLOCK_QS, GuardSettings.DEFAULT.blockQuickSettings),
             blockPowerMenu = prefs.getBoolean(KEY_BLOCK_POWER, GuardSettings.DEFAULT.blockPowerMenu),
-            method = BlockMethod.fromId(prefs.getString(KEY_METHOD, GuardSettings.DEFAULT.method.id)),
         )
     }
 
@@ -26,7 +30,7 @@ internal class GuardPreferences(context: Context) {
             .putBoolean(KEY_ENABLED, next.protectionEnabled)
             .putBoolean(KEY_BLOCK_QS, next.blockQuickSettings)
             .putBoolean(KEY_BLOCK_POWER, next.blockPowerMenu)
-            .putString(KEY_METHOD, next.method.id)
+            .remove(KEY_REMOVED_METHOD)
             .apply()
     }
 
@@ -43,6 +47,6 @@ internal class GuardPreferences(context: Context) {
         const val KEY_ENABLED = "protection_enabled"
         const val KEY_BLOCK_QS = "block_quick_settings"
         const val KEY_BLOCK_POWER = "block_power_menu"
-        const val KEY_METHOD = "block_method"
+        const val KEY_REMOVED_METHOD = "block_method"
     }
 }

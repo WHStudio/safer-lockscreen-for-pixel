@@ -6,7 +6,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.provider.Settings
 import com.whstudio.saferlockscreen.admin.LockDeviceAdminReceiver
-import com.whstudio.saferlockscreen.guard.BlockMethod
 import com.whstudio.saferlockscreen.guard.GuardSettings
 import com.whstudio.saferlockscreen.service.ShadeGuardService
 
@@ -16,16 +15,8 @@ internal data class ProtectionState(
     val adminActive: Boolean,
     val deviceSecure: Boolean,
 ) {
-    val needsAdmin: Boolean
-        get() = settings.method != BlockMethod.DISMISS
-
     val fullyActive: Boolean
-        get() = settings.protectionEnabled &&
-            accessibilityEnabled &&
-            (!needsAdmin || adminActive)
-
-    val partiallyActive: Boolean
-        get() = settings.protectionEnabled && accessibilityEnabled && !fullyActive
+        get() = settings.protectionEnabled && accessibilityEnabled
 }
 
 internal fun loadProtectionState(context: Context, settings: GuardSettings): ProtectionState {

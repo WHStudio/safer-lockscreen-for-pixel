@@ -6,7 +6,10 @@ import android.content.Context
 import android.content.Intent
 import com.whstudio.saferlockscreen.R
 
-/** Device admin limited to force-lock. See res/xml/device_admin.xml. */
+/**
+ * Kept so a device admin enabled by an older build can be deactivated.
+ * The app does not call lockNow and does not ask to be activated.
+ */
 class LockDeviceAdminReceiver : DeviceAdminReceiver() {
     override fun onDisableRequested(context: Context, intent: Intent): CharSequence {
         return context.getString(R.string.device_admin_disable_warning)

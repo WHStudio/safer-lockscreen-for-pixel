@@ -192,19 +192,15 @@ class SurfaceClassifierTest {
             protectionEnabled = true,
             blockQuickSettings = true,
             blockPowerMenu = true,
-            method = BlockMethod.AUTO,
         )
         val signals = DeviceSignals(
             deviceLocked = true,
             interactive = true,
-            adminActive = true,
             surfaces = SurfaceClassifier.classify(listOf(window)),
         )
         val actions = GuardPolicy.plan(settings, signals)
-        assertFalse(PlannedAction.LOCK_NOW in actions)
         assertFalse(PlannedAction.DISMISS_SHADE in actions)
         assertFalse(PlannedAction.PRESS_BACK in actions)
-        assertFalse(GuardPolicy.shouldEscalateShade(settings, signals))
         assertTrue(PlannedAction.SHOW_TOP_OVERLAY in actions)
     }
 

@@ -16,20 +16,11 @@ While the phone is locked:
 
 - **Block Quick Settings on the lock screen** (on by default once you turn protection on) closes the notification shade and Quick Settings.
 - **Block power menu on the lock screen** (on by default) closes the power-off / restart menu.
-- The lock-screen **Emergency** button is not blocked. Force-lock and the Back action are paused while the emergency dialer or Personal Safety SOS screen is open, so a call is not torn down. That also means the emergency path can sometimes still reach Quick Settings.
+- The lock-screen **Emergency** button is not blocked. Back is not pressed while the emergency dialer or Personal Safety SOS screen is open, so a call is not torn down. That also means the emergency path can sometimes still reach Quick Settings.
 - The clock, PIN pad, pattern, fingerprint target, and the rest of the lock screen stay uncovered.
+- The app does not turn the screen off. There is no force-lock mode.
 
-### Block methods
-
-Pixel users need more than one approach, because a single dismiss action is often too slow on Android 16 and 17.
-
-| Method | What it does |
-| --- | --- |
-| **Auto** (default) | Puts a transparent accessibility overlay on the top edge so the shade swipe never starts. If a panel is actually expanded, it dismisses that panel. It does **not** turn the screen off. |
-| **Dismiss shade** | Calls the accessibility actions that close an expanded shade, or Back for the power menu. No overlay and no force-lock. On some Pixel builds the tiles can flash before this lands. |
-| **Force lock** | Opt-in. When a Quick Settings panel or the power menu is expanded enough to cover most of the screen, dismisses it and calls `DevicePolicyManager.lockNow()`. The screen turns off. Android then asks for your PIN, pattern, or password once. Biometrics are skipped until that succeeds. The lock screen itself does not trigger this. |
-
-Use **Auto**. Force lock is a separate choice. It is not the fallback when the lock screen appears.
+Protection has one behavior. A transparent accessibility overlay covers the top edge so the shade swipe does not start. If a Quick Settings or notification panel is actually expanded across most of the screen, the app dismisses it. A separate switch closes the power menu the same way, without blanking the display. Older “Dismiss shade” and “Force lock” choices are ignored.
 
 ### Why it is built this way
 
@@ -48,9 +39,9 @@ It does not read notification text, message bodies, or passwords, and it never c
 
 The top-edge overlay is an accessibility overlay (`TYPE_ACCESSIBILITY_OVERLAY`) only as tall as the status-bar swipe region, including the display cutout. Touches that start there are consumed. Touches elsewhere pass through. It is removed when the screen is off, when the device unlocks, or when protection is off.
 
-The shade window is above normal app windows. An accessibility overlay is the supported way for an accessibility service to sit above it. If a particular build delivers the swipe to System UI anyway, Auto dismisses the panel only when that panel is actually expanded. Seeing the lock screen, the keyguard, or the collapsed `NotificationShade` window does not turn the display off.
+The shade window is above normal app windows. An accessibility overlay is the supported way for an accessibility service to sit above it. If a swipe still opens the panel, the app dismisses it only when that panel covers most of the screen. Seeing the lock screen, the keyguard, a collapsed `NotificationShade` window, or `ShadeScene` does not turn the display off.
 
-Device admin is requested for one policy: **force-lock**. There is no wipe, no password reset, and no other admin policy. Auto does not call `lockNow()`. The Force lock method does, and it is not called during an emergency call.
+This version does not use device admin and does not call `DevicePolicyManager.lockNow()`. The device-admin component remains only so an administrator enabled by an older build can be deactivated. Android will not uninstall an app while that administrator is still active. There is no wipe and no password reset.
 
 The accessibility service, device-admin receiver, boot receiver, and application are `directBootAware`. Settings are stored in device-protected storage. After a reboot, before the first unlock, an enabled service can still guard the lock screen. The manifest receiver listens for `LOCKED_BOOT_COMPLETED`, `BOOT_COMPLETED`, and `USER_UNLOCKED`.
 
@@ -60,8 +51,8 @@ There is no foreground service and no persistent notification. The system keeps 
 
 | Permission or capability | Why | How to turn it off |
 | --- | --- | --- |
-| Accessibility service | See when the shade, Quick Settings, or power menu is showing, dismiss it, and (in Auto) cover the top-edge swipe. Android warns that a service with window access can observe the screen. This one uses that access only to identify those system panels. | Settings → Accessibility → Safer Lockscreen → Off |
-| Device admin (force-lock only) | Blank the screen with `lockNow()` for the opt-in Force lock method, and for the in-app “Lock screen now” check. Auto does not use it. | In the app, **Deactivate device admin**, or Settings → Security → Device admin apps |
+| Accessibility service | See when the shade, Quick Settings, or power menu is showing, dismiss an expanded panel, and cover the top-edge swipe. Android warns that a service with window access can observe the screen. This one uses that access only to identify those system panels. | Settings → Accessibility → Safer Lockscreen → Off |
+| Device admin, only if an older build turned it on | Not used for protection. It can still block uninstall until you deactivate it. | In the app, **Deactivate device admin**, or Settings → Security → Device admin apps |
 | `RECEIVE_BOOT_COMPLETED` | Hear boot and the first unlock so protection is re-checked. Granted at install. No prompt. | Uninstall the app |
 | Internet | **Not requested.** | — |
 
@@ -81,14 +72,12 @@ The in-app screen repeats this.
 ## Set up on the phone
 
 1. Install the debug APK (see below).
-2. Open **Safer Lockscreen**.
-3. Enable **device admin**. Read the system screen: the only policy is locking the phone.
-4. Enable the **accessibility service**. Read its description. It matches the paragraph above.
-5. Turn on **Block lock-screen panels**. Leave both feature toggles on, and leave the method on **Auto**, unless you have a reason to change them.
+2. Open **Safer Lockscreen**. Each time the main screen opens, read the warning. The confirm button stays disabled for 5 seconds, then you tap it. The dialog does not close by itself, and it does not close if you tap outside it or press Back.
+3. Enable the **accessibility service**. Read its description. It matches the paragraph above.
+4. Turn on **Block lock-screen panels**. Both feature toggles can stay on.
+5. If the screen says an older device admin is still on, deactivate it.
 6. Set a PIN, pattern, or password if you have not. A swipe-only lock screen is not a lock.
-7. Lock the phone and try to swipe down from the top. Quick Settings should not stay open. Try the power button’s menu as well. Use the lock-screen Emergency button to confirm it still opens.
-
-**Lock screen now** in the app checks force-lock. The screen turns off, and the next unlock asks for your PIN, pattern, or password.
+7. Lock the phone and try to swipe down from the top. Quick Settings should not stay open. The screen should stay on so you can enter the PIN. Use the lock-screen Emergency button to confirm it still opens.
 
 ## Build and install
 
@@ -119,37 +108,38 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 GitHub Actions builds the debug APK and runs the unit tests on push and pull request. The workflow installs SDK platform `android-37.0` itself.
 
-## If an older build turns the screen off as soon as the phone wakes
+## If the phone turns the screen off, or you cannot get past the lock screen
 
-Builds before the lock-screen fix could treat the lock screen itself as an open Quick Settings panel and call force-lock. The phone then wakes and immediately turns the screen off again, so the PIN pad never stays up. You cannot change the method from the app while that is happening.
+Older builds could treat the lock screen itself as open Quick Settings and call force-lock. The phone then woke and immediately turned the screen off again, so the PIN pad never stayed up. A force-lock build could also flicker the display off in Safe Mode. This build does not call `lockNow()`. The overlay can still interfere with the lock-screen power menu, so do not rely on long-pressing Power there.
 
 Recover without opening the app:
 
-1. If USB debugging was already enabled, connect the phone and run:
+1. If USB debugging was already authorized, connect the phone and run:
 
    ```bash
    adb uninstall com.whstudio.saferlockscreen
    ```
 
-2. Or boot Safe Mode, which does not run this app. Force-restart the Pixel (hold Power, or Power and Volume Up, until it restarts). When the Google logo appears, hold Volume Down until startup finishes. Uninstall Safer Lockscreen, then restart normally.
+2. Otherwise, force a restart by holding the Power button for about 30 seconds, until the phone restarts. Do not depend on the lock-screen power menu.
 
-Install a build from this fix before turning protection on again. Auto no longer force-locks when the lock screen appears.
+3. When the Google G logo appears, hold Volume Down until startup finishes. That opens Safe Mode. Third-party apps, including this one, do not run their protection there.
+
+4. In Safe Mode, deactivate device admin if an older build left it enabled (Settings → Security → Device admin apps). Then uninstall Safer Lockscreen. Restart to leave Safe Mode.
 
 ## Known limitations
 
-- The shade or the power menu can flash briefly before it is dismissed. Auto exists to make that flash rare. It cannot promise a zero-frame race against System UI.
-- Android 16+ System UI (scene container / Flexiglass) keeps the shade window on screen while the lock screen is showing, including when the shade is collapsed. Auto blocks the swipe with the top-edge overlay and only dismisses a panel that covers most of the screen. It does not force-lock that window.
+- The shade or the power menu can flash briefly before it is dismissed. The overlay is what blocks the common swipe. It cannot promise a zero-frame race against System UI.
+- Android 16+ System UI (scene container / Flexiglass) keeps the shade window on screen while the lock screen is showing, including when the shade is collapsed. The app blocks the swipe with the top-edge overlay and only dismisses a panel that covers most of the screen. It does not turn the display off.
 - Behavior on non-Pixel skins can differ. The classifier knows a few common titles (“Control center”, and the Simplified Chinese system strings), but this app is aimed at stock Pixel Android 17.
-- While the emergency dialer is open, force-lock and Back are paused. Someone who opens Emergency first may still reach some tiles if dismiss does not win.
-- The power button’s path into Emergency goes through the power menu. Blocking that menu can interrupt that shortcut. The Emergency control drawn on the lock screen is separate and is not covered.
-- `lockNow()` is stronger than a normal screen timeout. After it runs, Android requires a PIN, pattern, or password one time.
+- While the emergency dialer is open, Back is not pressed. Someone who opens Emergency first may still reach some tiles if dismiss does not win.
+- The power button’s path into Emergency goes through the power menu. Blocking that menu can interrupt that shortcut, and the top-edge overlay can get in the way of the power menu. The Emergency control drawn on the lock screen is separate and is not covered. Do not rely on long-pressing Power on the lock screen to recover.
 - This does not stop someone who knows the PIN, and it does not help if the phone has no screen lock. It is not a device-tracking or remote-wipe tool. Those features are intentionally absent.
 - Another accessibility service can conflict with the overlay. TalkBack users should try the combination before relying on it.
 - Always-on display is left alone: the overlay is removed while the screen is not interactive, so it does not cover the AOD or eat the whole tap-to-wake area. The top edge can still wake the phone.
 
 ## Privacy
 
-The app has no network permission and no code that opens a socket. Preferences never leave the phone. Logs record only the action that ran (`dismissShade`, `dismissPowerMenu`, `lockNow`) and exception class names. They do not record window titles or notification text.
+The app has no network permission and no code that opens a socket. Preferences never leave the phone. Logs record only the action that ran (`dismissShade`, `dismissPowerMenu`) and exception class names. They do not record window titles or notification text.
 
 ## 中文说明
 
@@ -165,22 +155,19 @@ Pixel 原版系统不能关闭锁屏上的通知栏下拉。Android 17 的“锁
 
 - **在锁屏上阻止快捷设置**：关闭通知栏和快捷设置。
 - **在锁屏上阻止电源菜单**：关闭关机 / 重新启动菜单。
-- 锁屏上的**紧急呼叫**按钮不会被挡住。紧急拨号或个人安全 SOS 界面打开时，暂停强制锁屏和返回键，避免掐断通话。因此这条路径有时仍可能碰到快捷设置。
+- 锁屏上的**紧急呼叫**按钮不会被挡住。紧急拨号或个人安全 SOS 界面打开时，不会按返回键，避免掐断通话。因此这条路径有时仍可能碰到快捷设置。
+- 应用不会关闭屏幕。没有强制锁屏。
 
-**拦截方式**
+防护只有一种行为：用无障碍悬浮层盖住顶部下拉区域；只有快捷设置或通知栏真正盖住屏幕大部分时才收起它。电源菜单用另一个开关以同样的方式关闭，不会熄屏。旧版本里选择的“收起通知栏”或“强制锁屏”会被忽略。
 
-- **自动**（默认）：用无障碍悬浮层盖住顶部下拉区域，并只收起真正展开的面板。它不会关闭屏幕，因此你仍可以输入 PIN。请使用这个。
-- **收起通知栏**：只调用系统的收起通知栏动作，电源菜单则用返回键。不强制锁屏。部分系统上开关可能先闪一下。
-- **强制锁屏**：面板出现后立刻 `DevicePolicyManager.lockNow()`。屏幕关闭，下一次需要输入 PIN、图案或密码，在这之前会跳过生物识别。
-
-设备管理器只申请**强制锁定**。不能清除数据，不能重置密码。无障碍服务、设备管理器、开机广播和应用本身都标记了 `directBootAware`，设置放在设备受保护存储中，因此重启后、首次解锁前也能防护。没有常驻通知。
+无障碍服务、开机广播和应用本身都标记了 `directBootAware`，设置放在设备受保护存储中，因此重启后、首次解锁前也能防护。没有常驻通知。这个版本不使用设备管理器，也不调用 `lockNow()`。设备管理器组件只为了让旧版本已经启用的管理员可以被停用。管理员仍启用时，Android 不允许卸载。不能清除数据，也不能重置密码。
 
 无障碍服务只根据窗口标题、窗格标题、类名和视图 id 识别系统面板。不读取通知正文、短信或密码，也不截屏。
 
 ### 权限与关闭方式
 
-- **无障碍服务**：识别并关闭锁屏上的通知栏、快捷设置和电源菜单；“自动”模式还会挡住顶部下拉。关闭：设置 → 无障碍 → 更安全锁屏 → 关闭。
-- **设备管理器（仅强制锁定）**：只给可选的“强制锁屏”和“立即锁屏”使用。“自动”不会调用它。关闭：应用内“停用设备管理器”，或设置 → 安全 → 设备管理应用。
+- **无障碍服务**：识别并关闭真正打开的锁屏通知栏、快捷设置和电源菜单，并挡住顶部下拉。关闭：设置 → 无障碍 → 更安全锁屏 → 关闭。
+- **设备管理器**：防护不再使用它。如果旧版本启用过，卸载前必须停用。关闭：应用内“停用设备管理器”，或设置 → 安全 → 设备管理应用。
 - **开机完成广播**：重启和首次解锁时复查防护。安装时授予，没有弹窗。
 - **没有网络权限。** 没有广告、统计或崩溃上报。数据不离开手机，也不提供给其他应用。已关闭备份。
 
@@ -203,16 +190,18 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 `minSdk` 为 31，`targetSdk` / `compileSdk` 为 37。仓库里没有签名密钥。调试 APK 使用本机的 debug 签名。
 
-### 如果旧版本一亮屏就立刻熄屏
+每次打开主界面，都会先显示一段说明。确认按钮会禁用 5 秒并显示倒计时，到时后需要你点一下才会继续。点外面或按返回键都不会关掉它，时间到了也不会自己消失。
 
-修复之前的版本可能把锁屏本身当成已经打开的快捷设置，并强制锁屏。手机会亮一下马上再熄灭，PIN 键盘停不住。这时无法在应用里改拦截方式。
+### 如果屏幕被关掉，或无法通过锁屏
+
+旧版本可能把锁屏本身当成已经打开的快捷设置并强制锁屏。手机会亮一下马上再熄灭，PIN 键盘停不住。强制锁屏的版本甚至可能让安全模式的屏幕闪一下就关掉。这个版本不会调用 `lockNow()`。顶部遮罩仍可能妨碍锁屏上的电源菜单，不要指望在锁屏上长按电源键来恢复。
 
 不打开应用的恢复办法：
 
-1. 如果以前开过 USB 调试，连接电脑后执行 `adb uninstall com.whstudio.saferlockscreen`。
-2. 或者进入安全模式。强制重启 Pixel（按住电源键，或同时按住电源键和音量上键，直到重启）。出现 Google 标志时按住音量下键，直到启动完成。卸载“更安全锁屏”，再正常重启。
-
-装上这个修复之后，再打开防护。“自动”不会在锁屏出现时强制锁屏。
+1. 如果以前已经授权过 USB 调试，连接电脑后执行 `adb uninstall com.whstudio.saferlockscreen`。
+2. 否则按住电源键大约 30 秒，直到手机重新启动。不要依赖锁屏上的电源菜单。
+3. 出现 Google 的 G 标志时，按住音量下键，直到启动完成。这会进入安全模式。第三方应用的防护不会在那里运行。
+4. 在安全模式中，如果旧版本留下了设备管理器，请先在“设置 → 安全 → 设备管理应用”里停用，然后卸载“更安全锁屏”。重启即可退出安全模式。
 
 ### 限制
 

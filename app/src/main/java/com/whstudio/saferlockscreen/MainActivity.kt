@@ -21,11 +21,13 @@ import com.whstudio.saferlockscreen.guard.GuardSettings
 import com.whstudio.saferlockscreen.ui.HomeScreen
 import com.whstudio.saferlockscreen.ui.ProtectionState
 import com.whstudio.saferlockscreen.ui.SaferTheme
+import com.whstudio.saferlockscreen.ui.StartupWarningDialog
 import com.whstudio.saferlockscreen.ui.SystemSettingsTargets
 import com.whstudio.saferlockscreen.ui.loadProtectionState
 
 class MainActivity : ComponentActivity() {
     private val preferences by lazy { GuardPreferences(this) }
+    private var showWarning by mutableStateOf(true)
     private var state by mutableStateOf(
         ProtectionState(
             settings = GuardSettings.DEFAULT,
@@ -55,11 +57,12 @@ class MainActivity : ComponentActivity() {
                         preferences.update(transform)
                         refresh()
                     },
-                    onEnableAdmin = ::enableAdmin,
                     onDisableAdmin = ::disableAdmin,
                     onOpenAccessibility = ::openAccessibility,
-                    onLockNow = ::lockNow,
                 )
+                if (showWarning) {
+                    StartupWarningDialog(onConfirm = { showWarning = false })
+                }
             }
         }
     }
@@ -68,14 +71,9 @@ class MainActivity : ComponentActivity() {
         state = loadProtectionState(this, preferences.read())
     }
 
-    private fun enableAdmin() {
-        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
-            putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, LockDeviceAdminReceiver.component(this@MainActivity))
-            putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, getString(R.string.device_admin_explanation))
-        }
-        if (!startIfAvailable(intent)) {
-            showSettingsFailure()
-        }
+    override fun onStart() {
+        super.onStart()
+        showWarning = true
     }
 
     private fun disableAdmin() {
@@ -92,13 +90,6 @@ class MainActivity : ComponentActivity() {
         if (!opened) {
             showSettingsFailure()
         }
-    }
-
-    private fun lockNow() {
-        val manager = getSystemService(DevicePolicyManager::class.java)
-        val component = LockDeviceAdminReceiver.component(this)
-        if (!manager.isAdminActive(component)) return
-        manager.lockNow()
     }
 
     private fun startIfAvailable(intent: Intent): Boolean {

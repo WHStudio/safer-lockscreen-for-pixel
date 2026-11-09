@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -22,11 +21,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,17 +34,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.whstudio.saferlockscreen.R
-import com.whstudio.saferlockscreen.guard.BlockMethod
 import com.whstudio.saferlockscreen.guard.GuardSettings
 
 @Composable
 internal fun HomeScreen(
     state: ProtectionState,
     onChangeSettings: ((GuardSettings) -> GuardSettings) -> Unit,
-    onEnableAdmin: () -> Unit,
     onDisableAdmin: () -> Unit,
     onOpenAccessibility: () -> Unit,
-    onLockNow: () -> Unit,
 ) {
     val statusTitle = stringResource(statusTitle(state))
     val statusBody = stringResource(statusBody(state))
@@ -88,9 +82,11 @@ internal fun HomeScreen(
                     text = stringResource(R.string.section_setup),
                     style = MaterialTheme.typography.titleMedium,
                 )
-                AdminStep(state, onEnableAdmin, onDisableAdmin)
+                if (state.adminActive) {
+                    LegacyAdminStep(onDisableAdmin)
+                }
                 AccessibilityStep(state, onOpenAccessibility)
-                ProtectionStep(state, onChangeSettings, onLockNow)
+                ProtectionStep(state, onChangeSettings)
                 InfoCard(
                     title = stringResource(R.string.smart_lock_note),
                     body = null,
@@ -120,13 +116,11 @@ internal fun HomeScreen(
 private fun StatusCard(title: String, body: String, state: ProtectionState) {
     val container = when {
         state.fullyActive -> MaterialTheme.colorScheme.primaryContainer
-        state.partiallyActive -> MaterialTheme.colorScheme.tertiaryContainer
         state.accessibilityEnabled -> MaterialTheme.colorScheme.secondaryContainer
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
     val onContainer = when {
         state.fullyActive -> MaterialTheme.colorScheme.onPrimaryContainer
-        state.partiallyActive -> MaterialTheme.colorScheme.onTertiaryContainer
         state.accessibilityEnabled -> MaterialTheme.colorScheme.onSecondaryContainer
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -155,26 +149,11 @@ private fun StatusCard(title: String, body: String, state: ProtectionState) {
 }
 
 @Composable
-private fun AdminStep(
-    state: ProtectionState,
-    onEnableAdmin: () -> Unit,
-    onDisableAdmin: () -> Unit,
-) {
-    StepCard(title = stringResource(R.string.step_admin_title), done = state.adminActive) {
-        Text(text = stringResource(R.string.step_admin_body), style = MaterialTheme.typography.bodyMedium)
-        if (state.adminActive) {
-            Text(
-                text = stringResource(R.string.step_admin_done),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-            )
-            OutlinedButton(onClick = onDisableAdmin) {
-                Text(stringResource(R.string.step_admin_deactivate))
-            }
-        } else {
-            Button(onClick = onEnableAdmin) {
-                Text(stringResource(R.string.step_admin_action))
-            }
+private fun LegacyAdminStep(onDisableAdmin: () -> Unit) {
+    StepCard(title = stringResource(R.string.legacy_admin_title), done = false) {
+        Text(text = stringResource(R.string.legacy_admin_body), style = MaterialTheme.typography.bodyMedium)
+        OutlinedButton(onClick = onDisableAdmin) {
+            Text(stringResource(R.string.step_admin_deactivate))
         }
     }
 }
@@ -205,7 +184,6 @@ private fun AccessibilityStep(state: ProtectionState, onOpenAccessibility: () ->
 private fun ProtectionStep(
     state: ProtectionState,
     onChangeSettings: ((GuardSettings) -> GuardSettings) -> Unit,
-    onLockNow: () -> Unit,
 ) {
     val settings = state.settings
     StepCard(title = stringResource(R.string.step_protect_title), done = state.fullyActive) {
@@ -233,39 +211,6 @@ private fun ProtectionStep(
                 onChangeSettings { it.copy(blockPowerMenu = enabled) }
             },
         )
-        Text(
-            text = stringResource(R.string.method_title),
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-        MethodOption(
-            selected = settings.method == BlockMethod.AUTO,
-            title = stringResource(R.string.method_auto),
-            summary = stringResource(R.string.method_auto_summary),
-            onClick = { onChangeSettings { it.copy(method = BlockMethod.AUTO) } },
-        )
-        MethodOption(
-            selected = settings.method == BlockMethod.DISMISS,
-            title = stringResource(R.string.method_dismiss),
-            summary = stringResource(R.string.method_dismiss_summary),
-            onClick = { onChangeSettings { it.copy(method = BlockMethod.DISMISS) } },
-        )
-        MethodOption(
-            selected = settings.method == BlockMethod.FORCE_LOCK,
-            title = stringResource(R.string.method_force_lock),
-            summary = stringResource(R.string.method_force_lock_summary),
-            onClick = { onChangeSettings { it.copy(method = BlockMethod.FORCE_LOCK) } },
-        )
-        if (state.adminActive) {
-            TextButton(onClick = onLockNow) {
-                Text(stringResource(R.string.lock_now))
-            }
-            Text(
-                text = stringResource(R.string.lock_now_summary),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
@@ -326,36 +271,6 @@ private fun SwitchRow(
 }
 
 @Composable
-private fun MethodOption(
-    selected: Boolean,
-    title: String,
-    summary: String,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .selectable(
-                selected = selected,
-                role = Role.RadioButton,
-                onClick = onClick,
-            )
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        RadioButton(selected = selected, onClick = null)
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-            Text(
-                text = summary,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
 private fun InfoCard(title: String, body: String?, warning: Boolean) {
     val container = if (warning) {
         MaterialTheme.colorScheme.errorContainer
@@ -399,8 +314,7 @@ private fun statusTitle(state: ProtectionState): Int {
     return when {
         !state.accessibilityEnabled -> R.string.status_setup
         !state.settings.protectionEnabled -> R.string.status_off
-        state.fullyActive -> R.string.status_active
-        else -> R.string.status_partial
+        else -> R.string.status_active
     }
 }
 
@@ -408,8 +322,6 @@ private fun statusBody(state: ProtectionState): Int {
     return when {
         !state.accessibilityEnabled -> R.string.hero_need_accessibility
         !state.settings.protectionEnabled -> R.string.hero_off
-        state.settings.method == BlockMethod.FORCE_LOCK && !state.adminActive -> R.string.hero_need_admin_force
-        !state.adminActive && state.needsAdmin -> R.string.hero_partial
         else -> R.string.hero_active
     }
 }

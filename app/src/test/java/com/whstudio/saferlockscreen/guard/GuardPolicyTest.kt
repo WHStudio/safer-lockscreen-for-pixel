@@ -10,7 +10,6 @@ class GuardPolicyTest {
         protectionEnabled = true,
         blockQuickSettings = true,
         blockPowerMenu = true,
-        method = BlockMethod.AUTO,
     )
 
     @Test
@@ -22,102 +21,44 @@ class GuardPolicyTest {
     }
 
     @Test
-    fun autoShowsOverlayOnlyWhileInteractive() {
+    fun showsOverlayOnlyWhileInteractive() {
         assertTrue(PlannedAction.SHOW_TOP_OVERLAY in GuardPolicy.plan(armed, locked()))
         assertTrue(
             PlannedAction.HIDE_TOP_OVERLAY in GuardPolicy.plan(armed, locked(interactive = false)),
         )
-        assertFalse(
-            PlannedAction.SHOW_TOP_OVERLAY in GuardPolicy.plan(
-                armed.copy(method = BlockMethod.DISMISS),
-                locked(),
-            ),
-        )
     }
 
     @Test
-    fun dismissMethodClosesShadeWithoutLocking() {
-        val actions = GuardPolicy.plan(
-            armed.copy(method = BlockMethod.DISMISS),
-            locked(surfaces = setOf(SurfaceKind.SHADE)),
-        )
-        assertEquals(setOf(PlannedAction.HIDE_TOP_OVERLAY, PlannedAction.DISMISS_SHADE), actions)
-        assertFalse(
-            GuardPolicy.shouldEscalateShade(
-                armed.copy(method = BlockMethod.DISMISS),
-                locked(surfaces = setOf(SurfaceKind.SHADE)),
-            ),
-        )
-    }
-
-    @Test
-    fun forceLockBlanksImmediatelyWhenAdminIsActive() {
-        val actions = GuardPolicy.plan(
-            armed.copy(method = BlockMethod.FORCE_LOCK),
-            locked(surfaces = setOf(SurfaceKind.SHADE)),
-        )
+    fun openShadeIsDismissedAndDoesNotBlankTheScreen() {
+        val actions = GuardPolicy.plan(armed, locked(surfaces = setOf(SurfaceKind.SHADE)))
         assertEquals(
-            setOf(PlannedAction.HIDE_TOP_OVERLAY, PlannedAction.DISMISS_SHADE, PlannedAction.LOCK_NOW),
+            setOf(PlannedAction.SHOW_TOP_OVERLAY, PlannedAction.DISMISS_SHADE),
             actions,
         )
     }
 
     @Test
-    fun forceLockWithoutAdminOnlyDismisses() {
-        val actions = GuardPolicy.plan(
-            armed.copy(method = BlockMethod.FORCE_LOCK),
-            locked(adminActive = false, surfaces = setOf(SurfaceKind.SHADE)),
-        )
-        assertFalse(PlannedAction.LOCK_NOW in actions)
-        assertTrue(PlannedAction.DISMISS_SHADE in actions)
+    fun idleLockScreenOnlyCoversTheTopEdge() {
+        assertEquals(setOf(PlannedAction.SHOW_TOP_OVERLAY), GuardPolicy.plan(armed, locked()))
     }
 
     @Test
-    fun autoDismissesAnOpenShadeWithoutBlankingTheScreen() {
-        val shade = locked(surfaces = setOf(SurfaceKind.SHADE))
-        val actions = GuardPolicy.plan(armed, shade)
-        assertTrue(PlannedAction.DISMISS_SHADE in actions)
-        assertTrue(PlannedAction.SHOW_TOP_OVERLAY in actions)
-        assertFalse(PlannedAction.LOCK_NOW in actions)
-        assertFalse(GuardPolicy.shouldEscalateShade(armed, shade))
-
-        val duringCall = locked(surfaces = setOf(SurfaceKind.SHADE, SurfaceKind.EMERGENCY))
-        val emergencyActions = GuardPolicy.plan(armed, duringCall)
-        assertTrue(PlannedAction.DISMISS_SHADE in emergencyActions)
-        assertFalse(PlannedAction.LOCK_NOW in emergencyActions)
-        assertFalse(PlannedAction.PRESS_BACK in emergencyActions)
-    }
-
-    @Test
-    fun idleLockScreenDoesNotForceLock() {
-        val idle = locked(surfaces = emptySet())
-        val actions = GuardPolicy.plan(armed, idle)
-        assertEquals(setOf(PlannedAction.SHOW_TOP_OVERLAY), actions)
-        assertFalse(GuardPolicy.shouldEscalateShade(armed, idle))
-        assertFalse(
-            PlannedAction.LOCK_NOW in GuardPolicy.plan(armed.copy(method = BlockMethod.FORCE_LOCK), idle),
-        )
-    }
-
-    @Test
-    fun powerMenuGoesBackAndOnlyForceLockBlanksTheScreen() {
-        val power = locked(surfaces = setOf(SurfaceKind.POWER_MENU))
+    fun powerMenuPressesBackAndDoesNotBlankTheScreen() {
+        val actions = GuardPolicy.plan(armed, locked(surfaces = setOf(SurfaceKind.POWER_MENU)))
         assertEquals(
             setOf(PlannedAction.SHOW_TOP_OVERLAY, PlannedAction.PRESS_BACK),
-            GuardPolicy.plan(armed, power),
+            actions,
         )
-        assertEquals(
-            setOf(PlannedAction.HIDE_TOP_OVERLAY, PlannedAction.PRESS_BACK, PlannedAction.LOCK_NOW),
-            GuardPolicy.plan(armed.copy(method = BlockMethod.FORCE_LOCK), power),
-        )
-        assertEquals(
-            setOf(PlannedAction.HIDE_TOP_OVERLAY, PlannedAction.PRESS_BACK),
-            GuardPolicy.plan(armed.copy(method = BlockMethod.DISMISS), power),
-        )
-        val emergency = locked(surfaces = setOf(SurfaceKind.POWER_MENU, SurfaceKind.EMERGENCY))
-        val actions = GuardPolicy.plan(armed, emergency)
+    }
+
+    @Test
+    fun emergencyCallIsNotDismissed() {
+        val duringCall = locked(surfaces = setOf(SurfaceKind.SHADE, SurfaceKind.EMERGENCY))
+        val actions = GuardPolicy.plan(armed, duringCall)
+        assertTrue(PlannedAction.DISMISS_SHADE in actions)
         assertFalse(PlannedAction.PRESS_BACK in actions)
-        assertFalse(PlannedAction.LOCK_NOW in actions)
+        val powerDuringCall = locked(surfaces = setOf(SurfaceKind.POWER_MENU, SurfaceKind.EMERGENCY))
+        assertFalse(PlannedAction.PRESS_BACK in GuardPolicy.plan(armed, powerDuringCall))
     }
 
     @Test
@@ -136,13 +77,11 @@ class GuardPolicyTest {
     private fun locked(
         deviceLocked: Boolean = true,
         interactive: Boolean = true,
-        adminActive: Boolean = true,
         surfaces: Set<SurfaceKind> = emptySet(),
     ): DeviceSignals {
         return DeviceSignals(
             deviceLocked = deviceLocked,
             interactive = interactive,
-            adminActive = adminActive,
             surfaces = surfaces,
         )
     }

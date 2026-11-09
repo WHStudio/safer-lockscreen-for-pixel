@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <device-admin xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-policies>
-        <!-- Force-lock only. No wipe, password reset, camera disable, or other policies. -->
+        <!--
+            Kept so an administrator enabled by an older build can still be deactivated.
+            This app does not call lockNow.
+        -->
         <force-lock />
     </uses-policies>
 </device-admin>

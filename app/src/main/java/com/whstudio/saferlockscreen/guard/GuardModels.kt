@@ -1,35 +1,19 @@
 package com.whstudio.saferlockscreen.guard
 
 /**
- * How a locked device reacts when Quick Settings, the shade, or the power menu appears.
- *
- * [AUTO] is the default: cover the top-edge swipe and dismiss a panel that is actually
- * open. It never calls [android.app.admin.DevicePolicyManager.lockNow], because the lock
- * screen itself must stay up so the owner can enter a PIN. [DISMISS] only closes the
- * panel. [FORCE_LOCK] is opt-in and blanks the screen.
+ * Protection settings. There is one behavior: cover the top-edge swipe and dismiss a panel
+ * that is actually open. The app does not turn the screen off.
  */
-enum class BlockMethod(val id: String) {
-    AUTO("auto"),
-    DISMISS("dismiss"),
-    FORCE_LOCK("force_lock");
-
-    companion object {
-        fun fromId(id: String?): BlockMethod = entries.firstOrNull { it.id == id } ?: AUTO
-    }
-}
-
 internal data class GuardSettings(
     val protectionEnabled: Boolean,
     val blockQuickSettings: Boolean,
     val blockPowerMenu: Boolean,
-    val method: BlockMethod,
 ) {
     companion object {
         val DEFAULT = GuardSettings(
             protectionEnabled = false,
             blockQuickSettings = true,
             blockPowerMenu = true,
-            method = BlockMethod.AUTO,
         )
     }
 }
@@ -70,7 +54,6 @@ internal data class WindowSnapshot(
 internal data class DeviceSignals(
     val deviceLocked: Boolean,
     val interactive: Boolean,
-    val adminActive: Boolean,
     val surfaces: Set<SurfaceKind>,
 )
 
@@ -79,5 +62,4 @@ internal enum class PlannedAction {
     HIDE_TOP_OVERLAY,
     DISMISS_SHADE,
     PRESS_BACK,
-    LOCK_NOW,
 }
