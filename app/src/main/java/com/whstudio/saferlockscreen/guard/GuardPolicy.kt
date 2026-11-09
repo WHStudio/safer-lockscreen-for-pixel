@@ -1,11 +1,12 @@
 package com.whstudio.saferlockscreen.guard
 
 /**
- * Pure decision for one observation. The service performs the actions and, for [BlockMethod.AUTO],
- * schedules [shouldEscalateShade] if the shade is still up after the dismiss attempt.
+ * Pure decision for one observation.
  *
- * Emergency UI suppresses back and force-lock so an emergency call is not torn down. The top-edge
- * overlay and shade dismiss can still run, because those do not close the dialer.
+ * [BlockMethod.AUTO] never blank the screen. The lock screen, keyguard, and collapsed shade
+ * are not a reason to call lockNow, and an ambiguous shade match must not escalate into one.
+ * Only the opt-in [BlockMethod.FORCE_LOCK] method locks. Emergency UI suppresses back and
+ * force-lock so a call is not torn down.
  */
 internal object GuardPolicy {
     fun plan(settings: GuardSettings, signals: DeviceSignals): Set<PlannedAction> {
@@ -25,24 +26,21 @@ internal object GuardPolicy {
 
         if (shade) {
             actions += PlannedAction.DISMISS_SHADE
-            if (!emergency && settings.method == BlockMethod.FORCE_LOCK && signals.adminActive) {
-                actions += PlannedAction.LOCK_NOW
-            }
         }
         if (power) {
             actions += PlannedAction.PRESS_BACK
-            if (settings.method != BlockMethod.DISMISS && signals.adminActive) {
-                actions += PlannedAction.LOCK_NOW
-            }
+        }
+        if (!emergency && settings.method == BlockMethod.FORCE_LOCK && signals.adminActive && (shade || power)) {
+            actions += PlannedAction.LOCK_NOW
         }
         return actions
     }
 
-    /** Auto waits one beat so a successful dismiss does not also blank the screen. */
-    fun shouldEscalateShade(settings: GuardSettings, signals: DeviceSignals): Boolean {
-        if (!settings.protectionEnabled || !signals.deviceLocked || !signals.adminActive) return false
-        if (settings.method != BlockMethod.AUTO || !settings.blockQuickSettings) return false
-        if (SurfaceKind.EMERGENCY in signals.surfaces) return false
-        return SurfaceKind.SHADE in signals.surfaces
-    }
+    /**
+     * Auto used to force-lock when a shade match was still present a moment later. That
+     * match fired for the lock screen itself and turned the display off on every wake.
+     * There is no delayed force-lock anymore.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    fun shouldEscalateShade(settings: GuardSettings, signals: DeviceSignals): Boolean = false
 }

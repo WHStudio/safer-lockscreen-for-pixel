@@ -46,7 +46,7 @@
 
     <string name="method_title">Block method</string>
     <string name="method_auto">Auto</string>
-    <string name="method_auto_summary">Covers the top edge so the shade swipe does not start, closes the panel if it still appears, and force-locks if the panel stays open. Recommended for Pixel.</string>
+    <string name="method_auto_summary">Covers the top edge so the shade swipe does not start, and closes a panel that is actually open. It does not turn the screen off, so you can still enter your PIN. Recommended.</string>
     <string name="method_dismiss">Dismiss shade</string>
     <string name="method_dismiss_summary">Closes the shade or power menu when it appears. On some Pixel builds this is too slow on its own and the tiles can flash.</string>
     <string name="method_force_lock">Force lock</string>

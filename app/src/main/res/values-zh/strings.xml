@@ -46,7 +46,7 @@
 
     <string name="method_title">拦截方式</string>
     <string name="method_auto">自动</string>
-    <string name="method_auto_summary">盖住屏幕顶部边缘，让下拉通知栏的滑动无法开始；如果面板仍然出现就收起它；如果面板还在，就强制锁屏。推荐在 Pixel 上使用。</string>
+    <string name="method_auto_summary">盖住屏幕顶部边缘，让下拉通知栏的滑动无法开始，并收起真正打开的面板。它不会关闭屏幕，因此你仍可以输入 PIN。推荐使用。</string>
     <string name="method_dismiss">收起通知栏</string>
     <string name="method_dismiss_summary">面板出现后把它收起。在部分 Pixel 系统上，仅靠这种方式会偏慢，开关可能闪一下。</string>
     <string name="method_force_lock">强制锁屏</string>

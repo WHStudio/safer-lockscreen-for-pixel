@@ -24,63 +24,63 @@ class SurfaceClassifierTest {
     }
 
     @Test
-    fun quickSettingsPaneTitleIsShade() {
-        val window = systemUi(paneTitles = listOf("Quick settings"))
+    fun expandedQuickSettingsPaneIsShade() {
+        val window = systemUi(visiblePanes = listOf(PaneSight("Quick settings", 1600)))
         assertEquals(SurfaceKind.SHADE, SurfaceClassifier.identify(window))
     }
 
     @Test
-    fun chineseQuickSettingsTitleIsShade() {
-        val window = systemUi(title = "快捷设置")
+    fun quickSettingsTitleWithoutAnExpandedPaneIsNotShade() {
+        val window = systemUi(title = "快捷设置", visiblePanes = listOf(PaneSight("Quick settings", 120)))
+        assertNull(SurfaceClassifier.identify(window))
+    }
+
+    @Test
+    fun expandedControlCenterPaneIsShade() {
+        val window = systemUi(visiblePanes = listOf(PaneSight("Control center", 1500)))
         assertEquals(SurfaceKind.SHADE, SurfaceClassifier.identify(window))
     }
 
     @Test
-    fun controlCenterTitleIsShade() {
-        val window = systemUi(title = "Control center")
-        assertEquals(SurfaceKind.SHADE, SurfaceClassifier.identify(window))
-    }
-
-    @Test
-    fun visibleQsFrameIsShade() {
+    fun expandedQsFrameIsShade() {
         val window = systemUi(
-            markers = listOf(ViewMarker("com.android.systemui:id/qs_frame", "android.widget.FrameLayout", 720)),
+            markers = listOf(ViewMarker("com.android.systemui:id/qs_frame", "android.widget.FrameLayout", 1600)),
         )
         assertEquals(SurfaceKind.SHADE, SurfaceClassifier.identify(window))
     }
 
     @Test
-    fun tinyQsFrameIsIgnored() {
+    fun qsFrameShorterThanTheExpandedPanelIsIgnored() {
         val window = systemUi(
-            markers = listOf(ViewMarker("com.android.systemui:id/qs_frame", "android.widget.FrameLayout", 10)),
+            markers = listOf(ViewMarker("com.android.systemui:id/qs_frame", "android.widget.FrameLayout", 720)),
         )
         assertNull(SurfaceClassifier.identify(window))
     }
 
     @Test
-    fun quickSettingsSceneIsShadeWhenTall() {
+    fun quickSettingsSceneIsShadeWhenItCoversTheScreen() {
         val window = systemUi(
             screenHeightPx = 2400,
             markers = listOf(
-                ViewMarker("", "com.android.systemui.scene.QuickSettingsScene", 800),
+                ViewMarker("", "com.android.systemui.scene.QuickSettingsScene", 1600),
             ),
         )
         assertEquals(SurfaceKind.SHADE, SurfaceClassifier.identify(window))
     }
 
     @Test
-    fun shadeSceneShorterThanThresholdIsIgnored() {
+    fun shadeSceneIsTheLockScreenContainerAndIsNotAPanel() {
         val window = systemUi(
             screenHeightPx = 2400,
-            markers = listOf(ViewMarker("", "com.android.systemui.scene.ShadeScene", 100)),
+            markers = listOf(ViewMarker("", "com.android.systemui.scene.ShadeScene", 2200)),
         )
         assertNull(SurfaceClassifier.identify(window))
     }
 
     @Test
-    fun notificationShadeAnnouncementOnTheEventIsShade() {
+    fun notificationShadeAnnouncementOnWakeIsNotAnOpenPanel() {
         val window = systemUi(eventTexts = listOf("Notification shade"))
-        assertEquals(SurfaceKind.SHADE, SurfaceClassifier.identify(window))
+        assertNull(SurfaceClassifier.identify(window))
     }
 
     @Test
@@ -115,14 +115,14 @@ class SurfaceClassifierTest {
     }
 
     @Test
-    fun powerOffTitleIsPowerMenu() {
-        val window = systemUi(title = "Power off")
-        assertEquals(SurfaceKind.POWER_MENU, SurfaceClassifier.identify(window))
+    fun powerButtonLabelsOnTheLockScreenAreNotThePowerMenu() {
+        val window = systemUi(title = "Lock screen", eventTexts = listOf("Power off", "Restart", "关机"))
+        assertNull(SurfaceClassifier.identify(window))
     }
 
     @Test
-    fun chineseShutdownTitleIsPowerMenu() {
-        val window = systemUi(eventTexts = listOf("关机"))
+    fun powerMenuWindowTitleIsPowerMenu() {
+        val window = systemUi(title = "Power menu")
         assertEquals(SurfaceKind.POWER_MENU, SurfaceClassifier.identify(window))
     }
 
@@ -167,11 +167,45 @@ class SurfaceClassifierTest {
     fun classifyKeepsShadeAndEmergencyTogether() {
         val kinds = SurfaceClassifier.classify(
             listOf(
-                systemUi(paneTitles = listOf("Quick settings")),
+                systemUi(visiblePanes = listOf(PaneSight("Quick settings", 1600))),
                 WindowSnapshot("com.android.phone", "com.android.phone.EmergencyDialer", "Emergency"),
             ),
         )
         assertEquals(setOf(SurfaceKind.SHADE, SurfaceKind.EMERGENCY), kinds)
+    }
+
+    @Test
+    fun lockScreenAppearanceDoesNotForceLock() {
+        val window = systemUi(
+            title = "Lock screen",
+            className = "com.android.systemui.shade.NotificationShadeWindowView",
+            eventTexts = listOf("Notification shade", "Power off", "关机"),
+            markers = listOf(
+                ViewMarker("", "com.android.systemui.scene.ShadeScene", 2200),
+                ViewMarker("com.android.systemui:id/qs_frame", "android.widget.FrameLayout", 200),
+                ViewMarker("com.android.systemui:id/notification_stack_scroller", "android.view.ViewGroup", 900),
+            ),
+            visiblePanes = listOf(PaneSight("Lock screen", 2200), PaneSight("Quick settings", 80)),
+        )
+        assertNull(SurfaceClassifier.identify(window))
+        val settings = GuardSettings(
+            protectionEnabled = true,
+            blockQuickSettings = true,
+            blockPowerMenu = true,
+            method = BlockMethod.AUTO,
+        )
+        val signals = DeviceSignals(
+            deviceLocked = true,
+            interactive = true,
+            adminActive = true,
+            surfaces = SurfaceClassifier.classify(listOf(window)),
+        )
+        val actions = GuardPolicy.plan(settings, signals)
+        assertFalse(PlannedAction.LOCK_NOW in actions)
+        assertFalse(PlannedAction.DISMISS_SHADE in actions)
+        assertFalse(PlannedAction.PRESS_BACK in actions)
+        assertFalse(GuardPolicy.shouldEscalateShade(settings, signals))
+        assertTrue(PlannedAction.SHOW_TOP_OVERLAY in actions)
     }
 
     @Test
@@ -190,7 +224,7 @@ class SurfaceClassifierTest {
     private fun systemUi(
         title: String = "NotificationShade",
         className: String = "com.android.systemui.shade.NotificationShadeWindowView",
-        paneTitles: List<String> = emptyList(),
+        visiblePanes: List<PaneSight> = emptyList(),
         eventTexts: List<String> = emptyList(),
         eventClassName: String = "",
         markers: List<ViewMarker> = emptyList(),
@@ -200,7 +234,7 @@ class SurfaceClassifierTest {
             packageName = SurfaceClassifier.SYSTEM_UI_PACKAGE,
             className = className,
             title = title,
-            paneTitles = paneTitles,
+            visiblePanes = visiblePanes,
             eventTexts = eventTexts,
             eventClassName = eventClassName,
             markers = markers,

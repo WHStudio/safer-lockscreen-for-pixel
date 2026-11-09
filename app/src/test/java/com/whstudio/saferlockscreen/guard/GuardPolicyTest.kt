@@ -73,27 +73,42 @@ class GuardPolicyTest {
     }
 
     @Test
-    fun autoDismissesThenEscalatesUnlessEmergencyIsOpen() {
+    fun autoDismissesAnOpenShadeWithoutBlankingTheScreen() {
         val shade = locked(surfaces = setOf(SurfaceKind.SHADE))
         val actions = GuardPolicy.plan(armed, shade)
         assertTrue(PlannedAction.DISMISS_SHADE in actions)
+        assertTrue(PlannedAction.SHOW_TOP_OVERLAY in actions)
         assertFalse(PlannedAction.LOCK_NOW in actions)
-        assertTrue(GuardPolicy.shouldEscalateShade(armed, shade))
+        assertFalse(GuardPolicy.shouldEscalateShade(armed, shade))
 
         val duringCall = locked(surfaces = setOf(SurfaceKind.SHADE, SurfaceKind.EMERGENCY))
         val emergencyActions = GuardPolicy.plan(armed, duringCall)
         assertTrue(PlannedAction.DISMISS_SHADE in emergencyActions)
         assertFalse(PlannedAction.LOCK_NOW in emergencyActions)
         assertFalse(PlannedAction.PRESS_BACK in emergencyActions)
-        assertFalse(GuardPolicy.shouldEscalateShade(armed, duringCall))
     }
 
     @Test
-    fun powerMenuGoesBackAndLocksExceptDismissMethodAndEmergency() {
+    fun idleLockScreenDoesNotForceLock() {
+        val idle = locked(surfaces = emptySet())
+        val actions = GuardPolicy.plan(armed, idle)
+        assertEquals(setOf(PlannedAction.SHOW_TOP_OVERLAY), actions)
+        assertFalse(GuardPolicy.shouldEscalateShade(armed, idle))
+        assertFalse(
+            PlannedAction.LOCK_NOW in GuardPolicy.plan(armed.copy(method = BlockMethod.FORCE_LOCK), idle),
+        )
+    }
+
+    @Test
+    fun powerMenuGoesBackAndOnlyForceLockBlanksTheScreen() {
         val power = locked(surfaces = setOf(SurfaceKind.POWER_MENU))
         assertEquals(
-            setOf(PlannedAction.SHOW_TOP_OVERLAY, PlannedAction.PRESS_BACK, PlannedAction.LOCK_NOW),
+            setOf(PlannedAction.SHOW_TOP_OVERLAY, PlannedAction.PRESS_BACK),
             GuardPolicy.plan(armed, power),
+        )
+        assertEquals(
+            setOf(PlannedAction.HIDE_TOP_OVERLAY, PlannedAction.PRESS_BACK, PlannedAction.LOCK_NOW),
+            GuardPolicy.plan(armed.copy(method = BlockMethod.FORCE_LOCK), power),
         )
         assertEquals(
             setOf(PlannedAction.HIDE_TOP_OVERLAY, PlannedAction.PRESS_BACK),

@@ -4,6 +4,7 @@ import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
+import com.whstudio.saferlockscreen.guard.PaneSight
 import com.whstudio.saferlockscreen.guard.SurfaceClassifier
 import com.whstudio.saferlockscreen.guard.ViewMarker
 import com.whstudio.saferlockscreen.guard.WindowSnapshot
@@ -38,9 +39,8 @@ internal object WindowSnapshots {
         }
         val packageName = root.packageName?.toString().orEmpty()
         val className = root.className?.toString().orEmpty()
-        val panes = mutableListOf<String>()
+        val panes = mutableListOf<PaneSight>()
         val markers = mutableListOf<ViewMarker>()
-        root.paneTitle?.toString()?.takeIf { it.isNotBlank() }?.let { panes += it }
         if (SurfaceClassifier.shouldWalk(packageName)) {
             val state = WalkState()
             walk(root, depth = 0, state = state, panes = panes, markers = markers)
@@ -51,7 +51,7 @@ internal object WindowSnapshots {
             packageName = packageName,
             className = className,
             title = title,
-            paneTitles = panes,
+            visiblePanes = panes,
             eventTexts = if (forThisWindow) hints.texts else emptyList(),
             eventClassName = if (forThisWindow) hints.className else "",
             markers = markers,
@@ -63,18 +63,25 @@ internal object WindowSnapshots {
         node: AccessibilityNodeInfo,
         depth: Int,
         state: WalkState,
-        panes: MutableList<String>,
+        panes: MutableList<PaneSight>,
         markers: MutableList<ViewMarker>,
     ) {
         if (depth > MAX_DEPTH || state.count >= MAX_NODES) return
         state.count++
         val viewId = node.viewIdResourceName.orEmpty()
         val className = node.className?.toString().orEmpty()
-        node.paneTitle?.toString()?.takeIf { it.isNotBlank() }?.let { panes += it }
-        if (node.isVisibleToUser && SurfaceClassifier.isCandidate(viewId, className)) {
+        // Hidden scenes stay in the shade window while the keyguard is showing. A pane
+        // title counts only when that node is actually on screen.
+        if (node.isVisibleToUser) {
             val bounds = android.graphics.Rect()
             node.getBoundsInScreen(bounds)
-            markers += ViewMarker(viewId = viewId, className = className, heightPx = bounds.height())
+            val paneTitle = node.paneTitle?.toString()
+            if (!paneTitle.isNullOrBlank()) {
+                panes += PaneSight(title = paneTitle, heightPx = bounds.height())
+            }
+            if (SurfaceClassifier.isCandidate(viewId, className)) {
+                markers += ViewMarker(viewId = viewId, className = className, heightPx = bounds.height())
+            }
         }
         if (depth == MAX_DEPTH || state.count >= MAX_NODES) return
         for (index in 0 until node.childCount) {

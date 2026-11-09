@@ -3,9 +3,10 @@ package com.whstudio.saferlockscreen.guard
 /**
  * How a locked device reacts when Quick Settings, the shade, or the power menu appears.
  *
- * [AUTO] is the Pixel default: stop the swipe, dismiss anything that still opens, then
- * force-lock if the panel stays up. [DISMISS] only closes the panel. [FORCE_LOCK] blanks
- * the screen with [android.app.admin.DevicePolicyManager.lockNow].
+ * [AUTO] is the default: cover the top-edge swipe and dismiss a panel that is actually
+ * open. It never calls [android.app.admin.DevicePolicyManager.lockNow], because the lock
+ * screen itself must stay up so the owner can enter a PIN. [DISMISS] only closes the
+ * panel. [FORCE_LOCK] is opt-in and blanks the screen.
  */
 enum class BlockMethod(val id: String) {
     AUTO("auto"),
@@ -45,6 +46,12 @@ internal data class ViewMarker(
     val heightPx: Int,
 )
 
+/** A pane title that was visible, with the height of that node on screen. */
+internal data class PaneSight(
+    val title: String,
+    val heightPx: Int,
+)
+
 /**
  * Identity of one window. Callers must not put notification body text in here.
  * [eventTexts] is only the short window-state title from a state-changed event.
@@ -53,7 +60,7 @@ internal data class WindowSnapshot(
     val packageName: String,
     val className: String,
     val title: String,
-    val paneTitles: List<String> = emptyList(),
+    val visiblePanes: List<PaneSight> = emptyList(),
     val eventTexts: List<String> = emptyList(),
     val eventClassName: String = "",
     val markers: List<ViewMarker> = emptyList(),

@@ -65,48 +65,51 @@ internal object SurfaceClassifier {
         ) {
             return true
         }
-        return titles(window, includeEventText = true).any { it in POWER_TITLES }
+        // Button labels ("Power off", "Restart", "关机") are not enough. They can be event
+        // text on the lock screen, and treating them as the power menu force-locked the phone.
+        return normalize(window.title) in POWER_MENU_TITLES
     }
 
     private fun isExpandedShade(window: WindowSnapshot): Boolean {
         if (!isSystemUi(window) || isPowerMenu(window)) return false
-        // Standing window title "NotificationShade" is ignored. User-facing Quick Settings
-        // titles and pane titles are only expected once that scene is actually showing.
-        if (paneAndWindowTitles(window).any { it in QS_TITLES }) return true
-        if (window.eventTexts.map(::normalize).any { it in QS_TITLES || it in EVENT_SHADE_TITLES }) {
+        // The shade window, its "Notification shade" announcement, and ShadeScene stay up
+        // for the whole time the keyguard is showing. None of those mean the panel is open.
+        val minHeight = expandedMinHeight(window.screenHeightPx)
+        if (window.visiblePanes.any { pane ->
+                pane.heightPx >= minHeight && normalize(pane.title) in QS_TITLES
+            }
+        ) {
             return true
         }
-        return window.markers.any { markerIndicatesShade(it, window.screenHeightPx) }
+        return window.markers.any { markerIndicatesShade(it, minHeight) }
     }
 
-    private fun markerIndicatesShade(marker: ViewMarker, screenHeightPx: Int): Boolean {
+    private fun markerIndicatesShade(marker: ViewMarker, minHeight: Int): Boolean {
+        if (marker.heightPx < minHeight) return false
         val id = marker.viewId.lowercase()
-        if (QS_VIEW_ID_PARTS.any { id.contains(it) }) {
-            return marker.heightPx >= QS_ID_MIN_HEIGHT_PX
-        }
+        if (QS_VIEW_ID_PARTS.any { id.contains(it) }) return true
         val cls = marker.className
         if (QS_CLASS_EXCLUDES.any { cls.contains(it, ignoreCase = true) }) return false
-        if (QS_CLASS_PARTS.none { cls.contains(it) }) return false
-        val minHeight = if (screenHeightPx > 0) {
-            maxOf(QS_CLASS_MIN_HEIGHT_PX, (screenHeightPx * 0.18f).toInt())
+        if (AMBIGUOUS_SHADE_CLASSES.any { cls.contains(it) }) return false
+        return QS_CLASS_PARTS.any { cls.contains(it) }
+    }
+
+    private fun expandedMinHeight(screenHeightPx: Int): Int {
+        return if (screenHeightPx > 0) {
+            maxOf(ABSOLUTE_MIN_EXPANDED_PX, (screenHeightPx * EXPANDED_HEIGHT_FRACTION).toInt())
         } else {
-            QS_CLASS_MIN_HEIGHT_PX
+            ABSOLUTE_MIN_EXPANDED_PX
         }
-        return marker.heightPx >= minHeight
     }
 
     private fun isSystemUi(window: WindowSnapshot): Boolean {
         return window.packageName == SYSTEM_UI_PACKAGE
     }
 
-    private fun paneAndWindowTitles(window: WindowSnapshot): List<String> {
-        return titles(window, includeEventText = false)
-    }
-
     private fun titles(window: WindowSnapshot, includeEventText: Boolean): List<String> {
         val raw = buildList {
             add(window.title)
-            addAll(window.paneTitles)
+            addAll(window.visiblePanes.map { it.title })
             if (includeEventText) addAll(window.eventTexts)
         }
         return raw.map(::normalize).filter { it.isNotEmpty() && it.length <= 48 }
@@ -127,26 +130,10 @@ internal object SurfaceClassifier {
         "快速设置",
     )
 
-    /** Announced when the shade opens. Not trusted as a permanent window title. */
-    private val EVENT_SHADE_TITLES = setOf(
-        "notification shade",
-        "通知栏",
-        "通知栏面板",
-    )
-
-    private val POWER_TITLES = setOf(
+    /** Window title of the global-actions dialog itself, not the labels of its buttons. */
+    private val POWER_MENU_TITLES = setOf(
         "power menu",
-        "power off",
-        "shutdown",
-        "restart",
-        "reboot",
-        "power options",
         "电源菜单",
-        "关机",
-        "重新启动",
-        "关闭电源",
-        "电源选项",
-        "重启",
     )
 
     private val EMERGENCY_TITLES = setOf(
@@ -204,10 +191,21 @@ internal object SurfaceClassifier {
         "QSContainerImpl",
         "QuickQSPanel",
         "QuickSettingsScene",
-        "ShadeScene",
         "NotificationsQuickSettings",
         "QuickSettingsShade",
         "QuickSettingsContainer",
+    )
+
+    /**
+     * These class names stay in the System UI window while the lock screen is showing,
+     * including when the shade is collapsed. Matching them blanked the screen on wake.
+     */
+    private val AMBIGUOUS_SHADE_CLASSES = listOf(
+        "ShadeScene",
+        "NotificationShadeWindow",
+        "SceneWindowRoot",
+        "Keyguard",
+        "Bouncer",
     )
 
     private val QS_CLASS_EXCLUDES = listOf(
@@ -224,7 +222,6 @@ internal object SurfaceClassifier {
         "qscontainer",
         "quickqspanel",
         "quicksettingsscene",
-        "shadescene",
         "quicksettingscontainer",
         "notificationsquicksettings",
         "quicksettingsshade",
@@ -233,6 +230,6 @@ internal object SurfaceClassifier {
         "shutdownui",
     )
 
-    private const val QS_ID_MIN_HEIGHT_PX = 48
-    private const val QS_CLASS_MIN_HEIGHT_PX = 160
+    private const val ABSOLUTE_MIN_EXPANDED_PX = 640
+    private const val EXPANDED_HEIGHT_FRACTION = 0.45f
 }
